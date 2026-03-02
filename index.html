@@ -635,9 +635,15 @@
     // ============================================
     const readSet = new Set();       // index đã đọc
     let typingAbort = null;
-    const FIRST_WAVE_MS = 20000;     // 20s để spawn đủ tất cả lần đầu
+    const FIRST_WAVE_MS = 20000;     // giữ lại để dễ tinh chỉnh về sau
     const fallZone = document.getElementById('fallZone');
     const caughtTray = document.getElementById('caughtTray');
+    const activeEnvelopes = new Set();
+    const activeIndices = new Set();
+    const MAX_ACTIVE = Math.min(8, Math.max(4, Math.floor(innerWidth / 140)));
+    const SPAWN_GAP_MS = 1500;
+    const FALL_CYCLES_BEFORE_SWAP = 2;
+    let spawnQueue = [];
 
     // ============================================
     // CANVAS SAO NHẤP NHÁY
@@ -725,18 +731,17 @@
         el.className = 'envelope';
         el.dataset.idx = idx;
 
-        // Vị trí ngang random (giữ trong viewport)
-        const maxLeft = vw - envW - 10;
-        const left = 10 + Math.random() * maxLeft;
+        // Vị trí ngang random (giữ trong viewport + tránh chồng lên nhau)
+        const left = getSafeLeft(envW, el);
         el.style.left = left + 'px';
         el.style.width = envW + 'px';
 
-        // Thời gian rơi: 10-16s (chậm, dễ bắt)
-        const fallDur = (10 + Math.random() * 6).toFixed(1);
-        // Thời gian lắc: 3-6s
-        const swayDur = (3 + Math.random() * 3).toFixed(1);
-        // Biên độ lắc
-        const sx = () => (Math.random() * 30 - 15).toFixed(0);
+        // Thời gian rơi: 18-28s (chậm hơn)
+        const fallDur = (18 + Math.random() * 10).toFixed(1);
+        // Thời gian lắc: 6-10s (dịu hơn)
+        const swayDur = (6 + Math.random() * 4).toFixed(1);
+        // Biên độ lắc nhỏ hơn
+        const sx = () => (Math.random() * 18 - 9).toFixed(0);
         const rot = (Math.random() * 4 - 2).toFixed(1);
 
         el.style.setProperty('--fall-dur', fallDur + 's');
@@ -767,21 +772,30 @@
         });
 
         fallZone.appendChild(el);
+        activeEnvelopes.add(el);
+        activeIndices.add(idx);
+        updateHeaderBadge();
 
         // Trigger opacity
         requestAnimationFrame(() => el.classList.add('spawned'));
 
-        // Khi animation rơi kết thúc 1 vòng → respawn ở vị trí ngang mới
-        // (CSS animation infinite tự loop, nhưng ta đổi left mỗi vòng)
-        const loopMs = parseFloat(fallDur) * 1000;
-        function reposition() {
-            const newLeft = 10 + Math.random() * maxLeft;
-            el.style.left = newLeft + 'px';
-            // Cập nhật trạng thái đọc
+        // Mỗi vòng rơi → đổi vị trí ngang, tránh chồng lên nhau
+        let cycles = 0;
+        el.addEventListener('animationiteration', (e) => {
+            if (e.animationName !== 'envFall') return;
+            el.style.left = getSafeLeft(envW, el) + 'px';
             if (readSet.has(idx)) el.classList.add('read');
-            setTimeout(reposition, loopMs);
-        }
-        setTimeout(reposition, loopMs);
+            cycles++;
+
+            // Đổi thẻ sau vài vòng để giảm số lượng hiển thị cùng lúc
+            if (cycles >= FALL_CYCLES_BEFORE_SWAP) {
+                activeEnvelopes.delete(el);
+                activeIndices.delete(idx);
+                el.remove();
+                updateHeaderBadge();
+                setTimeout(spawnNext, 300);
+            }
+        });
     }
 
     // ============================================
@@ -789,18 +803,53 @@
     // Đảm bảo TẤT CẢ spawn trong 20s đầu
     // Thứ tự ngẫu nhiên (shuffle)
     // ============================================
-    function startFalling() {
+    function refillQueue() {
         const n = wishes.length;
-        const order = shuffle([...Array(n).keys()]); // [0..24] xáo trộn
-        const interval = FIRST_WAVE_MS / n;          // ~800ms/phong bì
+        spawnQueue = shuffle([...Array(n).keys()].filter(i => !activeIndices.has(i)));
+    }
 
-        order.forEach((idx, i) => {
-            setTimeout(() => spawnEnvelope(idx), i * interval);
-        });
+    function spawnNext() {
+        if (activeIndices.size >= MAX_ACTIVE) return;
+        if (!spawnQueue.length) refillQueue();
+        if (!spawnQueue.length) return;
+        const idx = spawnQueue.shift();
+        if (activeIndices.has(idx)) return spawnNext();
+        spawnEnvelope(idx);
+    }
 
-        // Cập nhật badge
-        document.getElementById('headerBadge').textContent = n + ' lời chúc đang rơi 🕊️';
+    function updateHeaderBadge() {
+        const active = activeIndices.size;
+        const total = wishes.length;
+        document.getElementById('headerBadge').textContent =
+            active + '/' + total + ' lời chúc đang rơi 🕊️';
+    }
+
+    function startFalling() {
+        const initialCount = Math.min(MAX_ACTIVE, wishes.length);
+        refillQueue();
+        for (let i = 0; i < initialCount; i++) {
+            setTimeout(spawnNext, i * SPAWN_GAP_MS);
+        }
+        updateHeaderBadge();
         updateBadge();
+    }
+
+    function getSafeLeft(envW, excludeEl) {
+        const minLeft = 10;
+        const maxLeft = Math.max(10, innerWidth - envW - 10);
+        const minGap = Math.max(envW + 14, 120);
+
+        for (let i = 0; i < 24; i++) {
+            const left = minLeft + Math.random() * (maxLeft - minLeft);
+            let ok = true;
+            activeEnvelopes.forEach((other) => {
+                if (other === excludeEl) return;
+                const otherLeft = parseFloat(other.style.left || '0');
+                if (Math.abs(left - otherLeft) < minGap) ok = false;
+            });
+            if (ok) return left;
+        }
+        return minLeft + Math.random() * (maxLeft - minLeft);
     }
 
     // ============================================
