@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>💌 8/3 – Những Lời Yêu Thương</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Quicksand:wght@400;500;600;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <style>
+        /* ============================================
+           RESET & MOBILE-FIRST
+           ============================================ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Quicksand', sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: linear-gradient(180deg, #0a0015 0%, #1a0533 40%, #2d1b4e 70%, #1a0533 100%);
+            color: #fff;
+            position: relative;
+        }
+
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+
+        /* ============================================
+           SAO NHẤP NHÁY — CANVAS NỀN
+           ============================================ */
+        .stars-canvas {
+            position: fixed; inset: 0;
+            z-index: 0; pointer-events: none;
+        }
+
+        /* ============================================
+           HOA NỀN TRÔI NHẸ
+           ============================================ */
+        .bg-petal {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.1;
+            will-change: transform;
+            animation: bgUp linear infinite;
+        }
+
+        @keyframes bgUp {
+            0%   { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(20px, -120vh) rotate(200deg); }
+        }
+
+        /* ============================================
+           HEADER CỐ ĐỊNH
+           ============================================ */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 200;
+            text-align: center;
+            padding: 12px 16px 16px;
+            background: linear-gradient(180deg,
+                rgba(10,0,21,0.97) 0%,
+                rgba(10,0,21,0.8) 65%,
+                transparent 100%);
+            pointer-events: none;
+        }
+
+        .header-title {
+            font-size: clamp(1.15rem, 5vw, 1.7rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffd700, #ffaa00, #ffe066, #ffd700);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: goldShimmer 4s ease infinite;
+            line-height: 1.3;
+        }
+
+        @keyframes goldShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header-sub {
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        .header-badge {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 12px;
+            border-radius: 50px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.45);
+            font-weight: 600;
+        }
+
+        /* ============================================
+           VÙNG RƠI — FULL VIEWPORT
+           ============================================ */
+        .fall-zone {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* ============================================
+           PHONG BÌ RƠI
+           ============================================ */
+        .envelope {
+            position: absolute;
+            width: 130px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1.5px solid rgba(255,255,255,0.14);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px 10px;
+            cursor: pointer;
+            pointer-events: auto;
+            will-change: transform;
+            z-index: 11;
+
+            /* Bắt đầu ở trên viewport */
+            top: -140px;
+
+            /* Animation rơi + lắc */
+            animation:
+                envFall var(--fall-dur) linear infinite var(--fall-delay),
+                envSway var(--sway-dur) ease-in-out infinite var(--sway-delay);
+
+            opacity: 0;
+        }
+
+        .envelope.spawned {
+            opacity: 1;
+        }
+
+        /* RƠI TỪ TRÊN XUỐNG — xuyên qua viewport */
+        @keyframes envFall {
+            0%   { top: -140px; }
+            100% { top: calc(100vh + 60px); }
+        }
+
+        /* LẮC QUA LẠI — drift nhẹ trái phải */
+        @keyframes envSway {
+            0%, 100% { transform: translateX(0) rotate(var(--r0)); }
+            25%  { transform: translateX(var(--sx1)) rotate(calc(var(--r0) + 3deg)); }
+            50%  { transform: translateX(var(--sx2)) rotate(var(--r0)); }
+            75%  { transform: translateX(var(--sx3)) rotate(calc(var(--r0) - 3deg)); }
+        }
+
+        /* Glow pulse */
+        .envelope::after {
+            content: '';
+            position: absolute; inset: -3px;
+            border-radius: 19px;
+            background: var(--glow);
+            opacity: 0;
+            z-index: -1;
+            filter: blur(14px);
+            animation: glowPulse 3s ease-in-out infinite var(--glow-d);
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.5; }
+        }
+
+        .envelope:active {
+            transform: scale(0.92) !important;
+        }
+
+        .env-icon {
+            font-size: 1.7rem;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .env-mail {
+            font-size: 0.6rem;
+            opacity: 0.35;
+            margin-bottom: 1px;
+        }
+
+        .env-name {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-align: center;
+            color: #fff;
+            line-height: 1.2;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+        }
+
+        .env-hint {
+            font-size: 0.5rem;
+            color: rgba(255,255,255,0.28);
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        /* Đã đọc — vẫn rơi, nhưng mờ hơn */
+        .envelope.read { opacity: 0.35 !important; }
+        .envelope.read .env-hint { display: none; }
+        .envelope.read::before {
+            content: '✓';
+            position: absolute;
+            top: 5px; right: 7px;
+            font-size: 0.6rem;
+            color: #55efc4;
+            font-weight: 700;
+        }
+
+        /* ============================================
+           KHU VỰC ĐÃ BẮT — DƯỚI CÙNG
+           ============================================ */
+        .caught-tray {
+            position: fixed;
+            bottom: 54px;
+            left: 0; right: 0;
+            z-index: 50;
+            display: flex;
+            gap: 4px;
+            padding: 0 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            pointer-events: auto;
+            min-height: 40px;
+            align-items: center;
+        }
+
+        .caught-tray::-webkit-scrollbar { display: none; }
+
+        .caught-chip {
+            flex-shrink: 0;
+            padding: 4px 10px;
+            border-radius: 50px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            font-size: 0.58rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: transform 0.15s;
+            animation: chipIn 0.3s ease both;
+        }
+
+        .caught-chip:active { transform: scale(0.93); }
+
+        @keyframes chipIn {
+            from { transform: scale(0) translateY(10px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* ============================================
+           MODAL OVERLAY — MỞ THƯ
+           ============================================ */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            background: rgba(5,0,15,0);
+            transition: background 0.35s ease;
+        }
+
+        .modal-overlay.show { display: flex; }
+        .modal-overlay.show.fade-in { background: rgba(5,0,15,0.9); }
+
+        /* ============================================
+           PHONG BÌ 3D MỞ
+           ============================================ */
+        .letter-wrapper {
+            width: min(360px, 92vw);
+            position: relative;
+            transform: scale(0.4);
+            opacity: 0;
+            transition: transform 0.45s cubic-bezier(0.175,0.885,0.32,1.275), opacity 0.3s ease;
+        }
+
+        .modal-overlay.show.fade-in .letter-wrapper {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .letter-wrapper.closing {
+            transform: scale(0.3) !important;
+            opacity: 0 !important;
+            transition: transform 0.3s ease-in, opacity 0.25s ease-in;
+        }
+
+        /* Nắp phong bì */
+        .env-flap {
+            width: 100%; height: 70px;
+            overflow: visible;
+            position: relative; z-index: 5;
+        }
+
+        .env-flap-shape {
+            width: 100%; height: 70px;
+            clip-path: polygon(0 0, 50% 100%, 100% 0);
+            border-radius: 12px 12px 0 0;
+            transform-origin: top center;
+            transform: rotateX(0deg);
+            transition: transform 0.5s ease 0.25s;
+        }
+
+        .modal-overlay.show.fade-in .env-flap-shape {
+            transform: rotateX(180deg);
+        }
+
+        /* Thân thư */
+        .env-body {
+            width: 100%;
+            background: linear-gradient(155deg, #fffdf5 0%, #fff8ee 40%, #fff3e0 100%);
+            border-radius: 0 0 14px 14px;
+            position: relative;
+            margin-top: -2px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
+            overflow: hidden;
+        }
+
+        .env-body::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(200,180,160,0.07) 28px, rgba(200,180,160,0.07) 29px);
+            pointer-events: none;
+        }
+
+        .corner { position: absolute; font-size: 0.9rem; opacity: 0.2; pointer-events: none; }
+        .corner.tl { top: 8px; left: 10px; }
+        .corner.tr { top: 8px; right: 10px; }
+        .corner.bl { bottom: 8px; left: 10px; }
+        .corner.br { bottom: 8px; right: 10px; }
+
+        .letter-inner {
+            padding: 26px 20px 22px;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.4s ease 0.7s, transform 0.4s ease 0.7s;
+        }
+
+        .modal-overlay.show.fade-in .letter-inner {
+            opacity: 1; transform: translateY(0);
+        }
+
+        .letter-from-row { text-align: center; margin-bottom: 4px; }
+        .letter-label { font-size: 0.7rem; color: #b09080; font-weight: 500; }
+
+        .letter-from-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #4a1e30;
+            margin: 4px 0 2px;
+        }
+
+        .letter-to {
+            text-align: center;
+            font-size: 0.73rem;
+            color: #b07a9e;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .letter-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e0c0d0, transparent);
+            margin: 0 auto 16px; width: 75%;
+        }
+
+        .letter-msg {
+            font-size: 0.95rem;
+            color: #4a2e3e;
+            line-height: 1.8;
+            text-align: center;
+            min-height: 50px;
+            font-weight: 500;
+            padding: 0 2px;
+        }
+
+        .type-cursor {
+            display: inline-block;
+            width: 2px; height: 1em;
+            background: #ad1457;
+            animation: blink 0.6s step-end infinite;
+            vertical-align: text-bottom;
+            margin-left: 1px;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .letter-sig {
+            text-align: right;
+            margin-top: 18px;
+            padding-top: 10px;
+            border-top: 1px dashed #e0c8d8;
+        }
+
+        .sig-emoji { font-size: 1.5rem; vertical-align: middle; margin-right: 4px; }
+
+        .sig-name {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.1rem;
+            color: #6a3050;
+            font-weight: 700;
+        }
+
+        .letter-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .btn-l {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            font-size: 0.82rem;
+            cursor: pointer;
+            min-height: 44px;
+            min-width: 44px;
+            transition: transform 0.15s ease;
+        }
+
+        .btn-l:active { transform: scale(0.94); }
+
+        .btn-confetti {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #4a1e10;
+            box-shadow: 0 3px 12px rgba(255,215,0,0.3);
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #e91e63, #ad1457);
+            color: white;
+            box-shadow: 0 3px 12px rgba(233,30,99,0.3);
+        }
+
+        .btn-x {
+            position: absolute;
+            top: -42px; right: 0;
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.18);
+            color: white;
+            font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            min-height: 44px; min-width: 44px;
+        }
+
+        .btn-x:active { background: rgba(255,255,255,0.25); }
+
+        /* ============================================
+           BOTTOM BAR
+           ============================================ */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 100;
+            background: linear-gradient(0deg,
+                rgba(10,0,21,0.97) 0%,
+                rgba(10,0,21,0.75) 70%,
+                transparent 100%);
+            padding: 10px 16px 14px;
+            padding-bottom: max(14px, env(safe-area-inset-bottom));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .bottom-text {
+            font-size: 0.7rem;
+            font-weight: 600;
+            animation: softGlow 3s ease infinite;
+        }
+
+        @keyframes softGlow {
+            0%, 100% { color: rgba(255,200,220,0.35); }
+            50% { color: rgba(255,200,220,0.8); }
+        }
+
+        .badge-read {
+            padding: 3px 10px;
+            border-radius: 50px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.5);
+            font-weight: 600;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (min-width: 500px) {
+            .envelope { width: 145px; }
+        }
+        @media (min-width: 768px) {
+            .envelope { width: 160px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas sao nhấp nháy -->
+    <canvas class="stars-canvas" id="starsCanvas"></canvas>
+
+    <!-- Header cố định -->
+    <header class="header">
+        <h1 class="header-title">💌 8/3 – Những Lời Yêu Thương</h1>
+        <p class="header-sub">Bắt lấy phong bì đang rơi để đọc lời chúc...</p>
+        <span class="header-badge" id="headerBadge"></span>
+    </header>
+
+    <!-- Vùng rơi — full viewport -->
+    <div class="fall-zone" id="fallZone"></div>
+
+    <!-- Thanh phong bì đã bắt -->
+    <div class="caught-tray" id="caughtTray"></div>
+
+    <!-- Modal mở thư -->
+    <div class="modal-overlay" id="modal">
+        <div class="letter-wrapper" id="letterWrap">
+            <button class="btn-x" id="btnX" aria-label="Đóng">✕</button>
+            <div class="env-flap">
+                <div class="env-flap-shape" id="flapShape"></div>
+            </div>
+            <div class="env-body">
+                <span class="corner tl">🌸</span>
+                <span class="corner tr">🌷</span>
+                <span class="corner bl">🌹</span>
+                <span class="corner br">🌺</span>
+                <div class="letter-inner" id="letterInner">
+                    <div class="letter-from-row">
+                        <span class="letter-label">Từ</span>
+                        <h3 class="letter-from-name" id="lName"></h3>
+                    </div>
+                    <p class="letter-to" id="lTo"></p>
+                    <div class="letter-line"></div>
+                    <p class="letter-msg" id="lMsg"></p>
+                    <div class="letter-sig">
+                        <span class="sig-emoji" id="lSigEmoji"></span>
+                        <span class="sig-name" id="lSigName"></span>
+                    </div>
+                    <div class="letter-btns">
+                        <button class="btn-l btn-confetti" id="btnFirework">🎊 Bung Pháo Hoa!</button>
+                        <button class="btn-l btn-back" id="btnBack">💌 Đọc thư khác</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom-bar">
+        <span class="bottom-text">🌸 Chúc Mừng 8/3 🌸</span>
+        <span class="badge-read" id="badgeRead"></span>
+    </div>
+
+    <script>
+    // ============================================================
+    // ✏️ DỮ LIỆU LỜI CHÚC — THAY TÊN & NỘI DUNG TẠI ĐÂY
+    //
+    // Cấu trúc mỗi phần tử:
+    //   from    : "Tên bạn nam"
+    //   avatar  : emoji đại diện trên phong bì
+    //   color   : mã màu hex → glow viền
+    //   message : nội dung lời chúc
+    //   to      : dòng "Gửi đến..."
+    //
+    // Thêm/bớt thoải mái — web tự điều chỉnh.
+    // ============================================================
+    const wishes = [
+      { from: "Bạn Nam 1",  avatar: "🌟", color: "#ff6b9d", message: "Chúc các bạn nữ 8/3 thật vui vẻ và hạnh phúc! Các bạn luôn là nguồn cảm hứng của cả lớp 🌸", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 2",  avatar: "⭐", color: "#a29bfe", message: "Ngày 8/3 chúc các bạn luôn xinh đẹp và rạng rỡ! Cảm ơn vì đã làm lớp mình thêm sắc màu 💐", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 3",  avatar: "🎯", color: "#fd79a8", message: "Chúc mừng ngày Quốc Tế Phụ Nữ! Mong các bạn luôn vui vẻ, học tốt và hạnh phúc mãi mãi ✨", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 4",  avatar: "🚀", color: "#74b9ff", message: "8/3 rồi! Chúc các chị em trong lớp mình luôn tươi vui như những bông hoa mùa xuân 🌺", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 5",  avatar: "💫", color: "#55efc4", message: "Nhân ngày 8/3, tụi mình muốn nói: các bạn nữ xịn xò lắm đó nha! Chúc các bạn ngày vui 🎉", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 6",  avatar: "🎸", color: "#fdcb6e", message: "Chúc 8/3 vui! Mong các bạn luôn mạnh khỏe, xinh đẹp và thành công trong mọi việc 🌟", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 7",  avatar: "🏆", color: "#e17055", message: "Các bạn nữ ơi, hôm nay là ngày của các bạn rồi! Chúc các bạn luôn rạng rỡ và hạnh phúc 💕", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 8",  avatar: "🌊", color: "#0984e3", message: "Chúc mừng 8/3! Cảm ơn các bạn vì đã luôn là những người bạn tuyệt vời của lớp mình 🌷", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 9",  avatar: "🎨", color: "#6c5ce7", message: "Ngày 8/3, tụi mình chúc các chị em luôn xinh tươi, vui vẻ như mùa xuân đẹp nhất 🌸✨", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 10", avatar: "🔥", color: "#d63031", message: "8/3 chúc các bạn nữ mãi trẻ đẹp, hạnh phúc! Lớp mình may mắn vì có các bạn đồng hành 💝", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 11", avatar: "🎵", color: "#e84393", message: "Nhạc vui ngày 8/3 dành cho các bạn nữ! Chúc các bạn luôn vui tươi và xinh đẹp mỗi ngày 🎶", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 12", avatar: "🌈", color: "#00b894", message: "Chúc các bạn nữ có ngày 8/3 rực rỡ như cầu vồng! Các bạn xứng đáng được hạnh phúc nhất 🌈", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 13", avatar: "🎭", color: "#fdcb6e", message: "Happy 8/3! Cảm ơn các bạn nữ đã mang tiếng cười đến cho lớp mình mỗi ngày 😄💐", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 14", avatar: "⚡", color: "#f39c12", message: "Ngày Quốc Tế Phụ Nữ chúc các bạn luôn mạnh mẽ, tự tin và tỏa sáng! Các bạn giỏi lắm ⚡✨", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 15", avatar: "🎪", color: "#e056a0", message: "8/3 vui nha! Mong các bạn nữ luôn cười thật tươi, vì nụ cười các bạn làm sáng cả lớp 😊🌸", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 16", avatar: "🌙", color: "#a29bfe", message: "Chúc các bạn nữ 8/3 an lành! Các bạn như ánh trăng – dịu dàng mà luôn tỏa sáng 🌙💕", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 17", avatar: "🦋", color: "#00cec9", message: "Chúc mừng 8/3! Mong các bạn nữ luôn tự do bay cao như cánh bướm, xinh đẹp và hạnh phúc 🦋", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 18", avatar: "🎤", color: "#ff7675", message: "Hát cho ngày 8/3: các bạn nữ là best! Chúc các bạn luôn vui vẻ, xinh xắn, tuyệt vời 🎤🌹", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 19", avatar: "🏅", color: "#f9ca24", message: "Huy chương vàng dành cho các bạn nữ vì luôn kiên cường và xinh đẹp! Chúc mừng 8/3 🏅💛", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 20", avatar: "🌍", color: "#26de81", message: "Ngày Quốc Tế Phụ Nữ: chúc các bạn nữ luôn là phiên bản tốt nhất của chính mình! 🌍💪", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 21", avatar: "💎", color: "#45aaf2", message: "Các bạn nữ quý như kim cương vậy đó! Chúc 8/3 thật đặc biệt và đáng nhớ nhé 💎✨", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 22", avatar: "🎲", color: "#a55eea", message: "Dù cuộc sống có random thế nào thì các bạn nữ vẫn luôn tuyệt vời! Chúc mừng 8/3 🎲🌸", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 23", avatar: "🧊", color: "#78e1e6", message: "Cool ngầu nhưng vẫn chúc 8/3 cực nhiệt! Các bạn nữ là phần không thể thiếu của lớp 🧊💕", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 24", avatar: "🎁", color: "#f368e0", message: "Món quà 8/3 là lời chúc chân thành: hãy luôn hạnh phúc, xinh đẹp và thành công nhé! 🎁🌷", to: "Tất cả các bạn nữ" },
+      { from: "Bạn Nam 25", avatar: "👑", color: "#ffd700", message: "Hôm nay các bạn nữ là nữ hoàng! Chúc một ngày 8/3 hoàng gia, lộng lẫy và tràn ngập yêu thương 👑🌹", to: "Tất cả các bạn nữ" }
+      // ← Thêm bạn nam mới ở đây, giữ nguyên cấu trúc
+    ];
+
+    // ============================================
+    // BIẾN TOÀN CỤC
+    // ============================================
+    const readSet = new Set();       // index đã đọc
+    let typingAbort = null;
+    const FIRST_WAVE_MS = 20000;     // 20s để spawn đủ tất cả lần đầu
+    const fallZone = document.getElementById('fallZone');
+    const caughtTray = document.getElementById('caughtTray');
+
+    // ============================================
+    // CANVAS SAO NHẤP NHÁY
+    // ============================================
+    function initStars() {
+        const cvs = document.getElementById('starsCanvas');
+        const ctx = cvs.getContext('2d');
+        let stars = [];
+
+        function resize() { cvs.width = innerWidth; cvs.height = innerHeight; }
+
+        function make() {
+            stars = [];
+            for (let i = 0; i < 150; i++) {
+                stars.push({
+                    x: Math.random() * cvs.width,
+                    y: Math.random() * cvs.height,
+                    r: Math.random() * 1.4 + 0.3,
+                    base: Math.random() * 0.5 + 0.2,
+                    spd: Math.random() * 0.008 + 0.003,
+                    off: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function draw(t) {
+            ctx.clearRect(0, 0, cvs.width, cvs.height);
+            for (const s of stars) {
+                const a = s.base + Math.sin(t * s.spd + s.off) * 0.35;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${Math.max(0, Math.min(1, a))})`;
+                ctx.fill();
+            }
+            requestAnimationFrame(draw);
+        }
+
+        resize(); make();
+        requestAnimationFrame(draw);
+        addEventListener('resize', () => { resize(); make(); });
+    }
+
+    // ============================================
+    // HOA NỀN TRÔI NHẸ
+    // ============================================
+    function initPetals() {
+        const items = ['🌸','🌹','🌷','💐','🌺'];
+        function spawn() {
+            const el = document.createElement('div');
+            el.className = 'bg-petal';
+            el.textContent = items[Math.floor(Math.random() * items.length)];
+            el.style.left = Math.random() * 100 + 'vw';
+            el.style.bottom = '-20px';
+            el.style.fontSize = (8 + Math.random() * 8) + 'px';
+            el.style.animationDuration = (18 + Math.random() * 18) + 's';
+            el.style.animationDelay = Math.random() * 3 + 's';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 40000);
+        }
+        for (let i = 0; i < 6; i++) setTimeout(spawn, i * 400);
+        setInterval(spawn, 3500);
+    }
+
+    // ============================================
+    // XÁO TRỘN FISHER-YATES
+    // ============================================
+    function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    // ============================================
+    // TẠO 1 PHONG BÌ RƠI
+    // ============================================
+    function spawnEnvelope(idx) {
+        const w = wishes[idx];
+        const vw = innerWidth;
+        const envW = vw < 400 ? 130 : (vw < 600 ? 145 : 160);
+
+        const el = document.createElement('div');
+        el.className = 'envelope';
+        el.dataset.idx = idx;
+
+        // Vị trí ngang random (giữ trong viewport)
+        const maxLeft = vw - envW - 10;
+        const left = 10 + Math.random() * maxLeft;
+        el.style.left = left + 'px';
+        el.style.width = envW + 'px';
+
+        // Thời gian rơi: 10-16s (chậm, dễ bắt)
+        const fallDur = (10 + Math.random() * 6).toFixed(1);
+        // Thời gian lắc: 3-6s
+        const swayDur = (3 + Math.random() * 3).toFixed(1);
+        // Biên độ lắc
+        const sx = () => (Math.random() * 30 - 15).toFixed(0);
+        const rot = (Math.random() * 4 - 2).toFixed(1);
+
+        el.style.setProperty('--fall-dur', fallDur + 's');
+        el.style.setProperty('--fall-delay', '0s');
+        el.style.setProperty('--sway-dur', swayDur + 's');
+        el.style.setProperty('--sway-delay', (Math.random() * -3).toFixed(1) + 's');
+        el.style.setProperty('--r0', rot + 'deg');
+        el.style.setProperty('--sx1', sx() + 'px');
+        el.style.setProperty('--sx2', sx() + 'px');
+        el.style.setProperty('--sx3', sx() + 'px');
+        el.style.setProperty('--glow', w.color + '88');
+        el.style.setProperty('--glow-dim', w.color + '33');
+        el.style.setProperty('--glow-d', (Math.random() * -3).toFixed(1) + 's');
+
+        // Đã đọc?
+        if (readSet.has(idx)) el.classList.add('read');
+
+        el.innerHTML = `
+            <span class="env-icon">${w.avatar}</span>
+            <span class="env-mail">✉️</span>
+            <span class="env-name">${w.from}</span>
+            <span class="env-hint">bắt lấy!</span>
+        `;
+
+        // Click/tap → mở thư
+        el.addEventListener('click', () => {
+            openLetter(idx);
+        });
+
+        fallZone.appendChild(el);
+
+        // Trigger opacity
+        requestAnimationFrame(() => el.classList.add('spawned'));
+
+        // Khi animation rơi kết thúc 1 vòng → respawn ở vị trí ngang mới
+        // (CSS animation infinite tự loop, nhưng ta đổi left mỗi vòng)
+        const loopMs = parseFloat(fallDur) * 1000;
+        function reposition() {
+            const newLeft = 10 + Math.random() * maxLeft;
+            el.style.left = newLeft + 'px';
+            // Cập nhật trạng thái đọc
+            if (readSet.has(idx)) el.classList.add('read');
+            setTimeout(reposition, loopMs);
+        }
+        setTimeout(reposition, loopMs);
+    }
+
+    // ============================================
+    // KHỞI CHẠY SÓNG PHONG BÌ
+    // Đảm bảo TẤT CẢ spawn trong 20s đầu
+    // Thứ tự ngẫu nhiên (shuffle)
+    // ============================================
+    function startFalling() {
+        const n = wishes.length;
+        const order = shuffle([...Array(n).keys()]); // [0..24] xáo trộn
+        const interval = FIRST_WAVE_MS / n;          // ~800ms/phong bì
+
+        order.forEach((idx, i) => {
+            setTimeout(() => spawnEnvelope(idx), i * interval);
+        });
+
+        // Cập nhật badge
+        document.getElementById('headerBadge').textContent = n + ' lời chúc đang rơi 🕊️';
+        updateBadge();
+    }
+
+    // ============================================
+    // MỞ THƯ
+    // ============================================
+    function openLetter(idx) {
+        const w = wishes[idx];
+        const modal = document.getElementById('modal');
+        const wrap = document.getElementById('letterWrap');
+
+        // Đánh dấu đã đọc
+        readSet.add(idx);
+        // Cập nhật tất cả phong bì cùng index đang rơi
+        document.querySelectorAll(`.envelope[data-idx="${idx}"]`).forEach(e => e.classList.add('read'));
+        updateBadge();
+        addCaughtChip(idx);
+
+        // Màu nắp phong bì
+        document.getElementById('flapShape').style.background =
+            `linear-gradient(135deg, ${w.color}, ${shade(w.color, -25)})`;
+
+        // Glow
+        document.querySelector('.env-body').style.boxShadow =
+            `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${w.color}44`;
+
+        // Nội dung
+        document.getElementById('lName').textContent = w.from + ' 💌';
+        document.getElementById('lTo').textContent = 'Gửi: ' + w.to + ' 🌸';
+        document.getElementById('lSigEmoji').textContent = w.avatar;
+        document.getElementById('lSigName').textContent = w.from;
+
+        const msgEl = document.getElementById('lMsg');
+        msgEl.textContent = '';
+
+        // Hiện modal
+        wrap.classList.remove('closing');
+        modal.classList.add('show');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => modal.classList.add('fade-in'));
+        });
+
+        // Typewriter
+        if (typingAbort) typingAbort();
+        setTimeout(() => {
+            typingAbort = typewriter(msgEl, w.message, 28, () => miniConfetti());
+        }, 900);
+    }
+
+    // ============================================
+    // ĐÓNG THƯ
+    // ============================================
+    function closeLetter() {
+        const modal = document.getElementById('modal');
+        const wrap = document.getElementById('letterWrap');
+        if (typingAbort) { typingAbort(); typingAbort = null; }
+
+        wrap.classList.add('closing');
+        modal.classList.remove('fade-in');
+
+        setTimeout(() => {
+            modal.classList.remove('show');
+            wrap.classList.remove('closing');
+        }, 350);
+    }
+
+    document.getElementById('btnX').addEventListener('click', closeLetter);
+    document.getElementById('btnBack').addEventListener('click', closeLetter);
+    document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) closeLetter();
+    });
+    document.getElementById('btnFirework').addEventListener('click', bigConfetti);
+
+    // ============================================
+    // THANH PHONG BÌ ĐÃ BẮT (caught chips)
+    // ============================================
+    function addCaughtChip(idx) {
+        // Không thêm trùng
+        if (caughtTray.querySelector(`[data-ci="${idx}"]`)) return;
+
+        const w = wishes[idx];
+        const chip = document.createElement('div');
+        chip.className = 'caught-chip';
+        chip.dataset.ci = idx;
+        chip.textContent = w.avatar + ' ' + w.from;
+        chip.style.borderColor = w.color + '55';
+        chip.addEventListener('click', () => openLetter(idx));
+        caughtTray.appendChild(chip);
+
+        // Scroll đến chip mới
+        requestAnimationFrame(() => {
+            caughtTray.scrollLeft = caughtTray.scrollWidth;
+        });
+    }
+
+    // ============================================
+    // TYPEWRITER
+    // ============================================
+    function typewriter(el, text, speed, done) {
+        let i = 0, stopped = false;
+        const cur = document.createElement('span');
+        cur.className = 'type-cursor';
+
+        function tick() {
+            if (stopped) return;
+            if (i < text.length) {
+                el.textContent = text.substring(0, i + 1);
+                el.appendChild(cur);
+                i++;
+                setTimeout(tick, speed);
+            } else {
+                setTimeout(() => { if (cur.parentNode) cur.remove(); }, 700);
+                if (done) done();
+            }
+        }
+        tick();
+        return function() { stopped = true; el.textContent = text; if (cur.parentNode) cur.remove(); };
+    }
+
+    // ============================================
+    // CONFETTI
+    // ============================================
+    function miniConfetti() {
+        confetti({
+            particleCount: 45, spread: 55, origin: { y: 0.65 },
+            colors: ['#ff6b9d','#a29bfe','#fd79a8','#ffd700','#55efc4','#ff80ab']
+        });
+    }
+
+    function bigConfetti() {
+        const end = Date.now() + 2200;
+        const c = ['#ff6b9d','#a29bfe','#fd79a8','#ffd700','#55efc4','#e91e63','#ff80ab','#f06292'];
+        (function go() {
+            confetti({ particleCount: 5, angle: 60, spread: 50, origin: { x: 0 }, colors: c });
+            confetti({ particleCount: 5, angle: 120, spread: 50, origin: { x: 1 }, colors: c });
+            if (Date.now() < end) requestAnimationFrame(go);
+        })();
+    }
+
+    // ============================================
+    // BADGE ĐÃ ĐỌC
+    // ============================================
+    function updateBadge() {
+        document.getElementById('badgeRead').textContent =
+            'Đã bắt: ' + readSet.size + '/' + wishes.length;
+    }
+
+    // ============================================
+    // SHADE MÀU
+    // ============================================
+    function shade(hex, pct) {
+        let r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        r = Math.min(255, Math.max(0, r + Math.round(r*pct/100)));
+        g = Math.min(255, Math.max(0, g + Math.round(g*pct/100)));
+        b = Math.min(255, Math.max(0, b + Math.round(b*pct/100)));
+        return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+    }
+
+    // ============================================
+    // KHỞI CHẠY
+    // ============================================
+    document.addEventListener('DOMContentLoaded', () => {
+        initStars();
+        initPetals();
+        startFalling();
+    });
+    </script>
+</body>
+</html>
