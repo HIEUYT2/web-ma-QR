@@ -848,11 +848,12 @@
         const minLeft = 10;
         const maxLeft = Math.max(10, innerWidth - envW - 10);
         const span = maxLeft - minLeft;
-        const count = Math.max(1, Math.floor(span / (envW + gap)) + 1);
+        const count = 3;
         const lanes = [];
+        const step = span / (count - 1);
         for (let i = 0; i < count; i++) {
-            const left = minLeft + i * (envW + gap);
-            if (left <= maxLeft) lanes.push({ index: i, left });
+            const left = minLeft + i * step;
+            lanes.push({ index: i, left });
         }
         return lanes;
     }
