@@ -640,11 +640,14 @@
     const caughtTray = document.getElementById('caughtTray');
     const activeEnvelopes = new Set();
     const activeIndices = new Set();
-    const MAX_ACTIVE = Math.min(6, Math.max(3, Math.floor(innerWidth / 170)));
-    const SPAWN_GAP_MS = 1500;
+    const SLOTS_PER_LANE = 3;
+    const SLOT_PHASES = [];
+    const MAX_ACTIVE = Math.min(12, Math.max(6, Math.floor(innerWidth / 110)));
+    const SPAWN_GAP_MS = 700;
     const FALL_CYCLES_BEFORE_SWAP = 2;
     let spawnQueue = [];
-    const laneMap = new Map(); // el -> laneIndex
+    const slotMap = new Map(); // el -> { lane, slot }
+    const laneSpeed = new Map(); // laneIndex -> fallDur
 
     // ============================================
     // CANVAS SAO NHẤP NHÁY
@@ -732,15 +735,17 @@
         el.className = 'envelope';
         el.dataset.idx = idx;
 
-        // Vị trí theo "lane" để không chồng lên nhau
-        const lane = pickLane(envW);
-        if (lane === null) return;
-        el.style.left = lane.left + 'px';
-        laneMap.set(el, lane.index);
+        // Vị trí theo "lane/slot" để không chồng lên nhau
+        const slot = pickSlot(envW);
+        if (slot === null) return;
+        el.style.left = slot.left + 'px';
+        slotMap.set(el, { lane: slot.lane, slot: slot.slot });
         el.style.width = envW + 'px';
 
-        // Thời gian rơi: 18-28s (chậm hơn)
-        const fallDur = (13 + Math.random() * 6).toFixed(1);
+        // Thời gian rơi: 11-17s (nhanh hơn 1 tí)
+        const laneDur = laneSpeed.get(slot.lane) ?? (11 + Math.random() * 6).toFixed(1);
+        laneSpeed.set(slot.lane, laneDur);
+        const fallDur = laneDur;
         // Thời gian lắc: 6-10s (dịu hơn)
         const swayDur = (6 + Math.random() * 4).toFixed(1);
         // Biên độ lắc nhỏ hơn
@@ -748,7 +753,7 @@
         const rot = (Math.random() * 4 - 2).toFixed(1);
 
         el.style.setProperty('--fall-dur', fallDur + 's');
-        el.style.setProperty('--fall-delay', '0s');
+        el.style.setProperty('--fall-delay', (-slot.phase * parseFloat(fallDur)).toFixed(2) + 's');
         el.style.setProperty('--sway-dur', swayDur + 's');
         el.style.setProperty('--sway-delay', (Math.random() * -3).toFixed(1) + 's');
         el.style.setProperty('--r0', rot + 'deg');
@@ -793,7 +798,7 @@
             if (cycles >= FALL_CYCLES_BEFORE_SWAP) {
                 activeEnvelopes.delete(el);
                 activeIndices.delete(idx);
-                freeLane(el);
+                freeSlot(el);
                 el.remove();
                 updateHeaderBadge();
                 setTimeout(spawnNext, 300);
@@ -813,7 +818,7 @@
 
     function spawnNext() {
         if (activeIndices.size >= MAX_ACTIVE) return;
-        if (!hasFreeLane()) return;
+        if (!hasFreeSlot()) return;
         if (!spawnQueue.length) refillQueue();
         if (!spawnQueue.length) return;
         const idx = spawnQueue.shift();
@@ -839,10 +844,11 @@
     }
 
     function buildLanes(envW) {
-        const gap = 16;
+        const gap = 10;
         const minLeft = 10;
         const maxLeft = Math.max(10, innerWidth - envW - 10);
-        const count = Math.max(1, Math.floor((maxLeft - minLeft + gap) / (envW + gap)));
+        const span = maxLeft - minLeft;
+        const count = Math.max(1, Math.floor(span / (envW + gap)) + 1);
         const lanes = [];
         for (let i = 0; i < count; i++) {
             const left = minLeft + i * (envW + gap);
@@ -851,31 +857,53 @@
         return lanes;
     }
 
-    function getUsedLanes() {
+    function phaseForSlot(slotIdx) {
+        if (SLOT_PHASES[slotIdx] != null) return SLOT_PHASES[slotIdx];
+        return (slotIdx + 0.2) / SLOTS_PER_LANE;
+    }
+
+    function buildSlots(envW) {
+        const lanes = buildLanes(envW);
+        const slots = [];
+        for (const lane of lanes) {
+            for (let s = 0; s < SLOTS_PER_LANE; s++) {
+                slots.push({
+                    id: lane.index + '-' + s,
+                    lane: lane.index,
+                    slot: s,
+                    left: lane.left,
+                    phase: phaseForSlot(s)
+                });
+            }
+        }
+        return slots;
+    }
+
+    function getUsedSlots() {
         const used = new Set();
-        laneMap.forEach((laneIdx, el) => {
-            if (document.body.contains(el)) used.add(laneIdx);
+        slotMap.forEach((info, el) => {
+            if (document.body.contains(el)) used.add(info.lane + '-' + info.slot);
         });
         return used;
     }
 
-    function hasFreeLane() {
+    function hasFreeSlot() {
         const envW = innerWidth < 400 ? 130 : (innerWidth < 600 ? 145 : 160);
-        const lanes = buildLanes(envW);
-        const used = getUsedLanes();
-        return lanes.some(l => !used.has(l.index));
+        const slots = buildSlots(envW);
+        const used = getUsedSlots();
+        return slots.some(s => !used.has(s.id));
     }
 
-    function pickLane(envW) {
-        const lanes = buildLanes(envW);
-        const used = getUsedLanes();
-        const available = lanes.filter(l => !used.has(l.index));
+    function pickSlot(envW) {
+        const slots = buildSlots(envW);
+        const used = getUsedSlots();
+        const available = slots.filter(s => !used.has(s.id));
         if (!available.length) return null;
         return available[Math.floor(Math.random() * available.length)];
     }
 
-    function freeLane(el) {
-        laneMap.delete(el);
+    function freeSlot(el) {
+        slotMap.delete(el);
     }
 
     // ============================================
