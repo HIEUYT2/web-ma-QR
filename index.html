@@ -640,10 +640,11 @@
     const caughtTray = document.getElementById('caughtTray');
     const activeEnvelopes = new Set();
     const activeIndices = new Set();
-    const MAX_ACTIVE = Math.min(8, Math.max(4, Math.floor(innerWidth / 140)));
+    const MAX_ACTIVE = Math.min(6, Math.max(3, Math.floor(innerWidth / 170)));
     const SPAWN_GAP_MS = 1500;
     const FALL_CYCLES_BEFORE_SWAP = 2;
     let spawnQueue = [];
+    const laneMap = new Map(); // el -> laneIndex
 
     // ============================================
     // CANVAS SAO NHẤP NHÁY
@@ -731,9 +732,11 @@
         el.className = 'envelope';
         el.dataset.idx = idx;
 
-        // Vị trí ngang random (giữ trong viewport + tránh chồng lên nhau)
-        const left = getSafeLeft(envW, el);
-        el.style.left = left + 'px';
+        // Vị trí theo "lane" để không chồng lên nhau
+        const lane = pickLane(envW);
+        if (lane === null) return;
+        el.style.left = lane.left + 'px';
+        laneMap.set(el, lane.index);
         el.style.width = envW + 'px';
 
         // Thời gian rơi: 18-28s (chậm hơn)
@@ -783,7 +786,6 @@
         let cycles = 0;
         el.addEventListener('animationiteration', (e) => {
             if (e.animationName !== 'envFall') return;
-            el.style.left = getSafeLeft(envW, el) + 'px';
             if (readSet.has(idx)) el.classList.add('read');
             cycles++;
 
@@ -791,6 +793,7 @@
             if (cycles >= FALL_CYCLES_BEFORE_SWAP) {
                 activeEnvelopes.delete(el);
                 activeIndices.delete(idx);
+                freeLane(el);
                 el.remove();
                 updateHeaderBadge();
                 setTimeout(spawnNext, 300);
@@ -810,6 +813,7 @@
 
     function spawnNext() {
         if (activeIndices.size >= MAX_ACTIVE) return;
+        if (!hasFreeLane()) return;
         if (!spawnQueue.length) refillQueue();
         if (!spawnQueue.length) return;
         const idx = spawnQueue.shift();
@@ -834,22 +838,44 @@
         updateBadge();
     }
 
-    function getSafeLeft(envW, excludeEl) {
+    function buildLanes(envW) {
+        const gap = 16;
         const minLeft = 10;
         const maxLeft = Math.max(10, innerWidth - envW - 10);
-        const minGap = Math.max(envW + 14, 120);
-
-        for (let i = 0; i < 24; i++) {
-            const left = minLeft + Math.random() * (maxLeft - minLeft);
-            let ok = true;
-            activeEnvelopes.forEach((other) => {
-                if (other === excludeEl) return;
-                const otherLeft = parseFloat(other.style.left || '0');
-                if (Math.abs(left - otherLeft) < minGap) ok = false;
-            });
-            if (ok) return left;
+        const count = Math.max(1, Math.floor((maxLeft - minLeft + gap) / (envW + gap)));
+        const lanes = [];
+        for (let i = 0; i < count; i++) {
+            const left = minLeft + i * (envW + gap);
+            if (left <= maxLeft) lanes.push({ index: i, left });
         }
-        return minLeft + Math.random() * (maxLeft - minLeft);
+        return lanes;
+    }
+
+    function getUsedLanes() {
+        const used = new Set();
+        laneMap.forEach((laneIdx, el) => {
+            if (document.body.contains(el)) used.add(laneIdx);
+        });
+        return used;
+    }
+
+    function hasFreeLane() {
+        const envW = innerWidth < 400 ? 130 : (innerWidth < 600 ? 145 : 160);
+        const lanes = buildLanes(envW);
+        const used = getUsedLanes();
+        return lanes.some(l => !used.has(l.index));
+    }
+
+    function pickLane(envW) {
+        const lanes = buildLanes(envW);
+        const used = getUsedLanes();
+        const available = lanes.filter(l => !used.has(l.index));
+        if (!available.length) return null;
+        return available[Math.floor(Math.random() * available.length)];
+    }
+
+    function freeLane(el) {
+        laneMap.delete(el);
     }
 
     // ============================================
