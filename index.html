@@ -6,16 +6,26 @@
     <title>💌8/3 - 12A1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Quicksand:wght@400;500;600;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Quicksand:wght@400;500;600;700&family=Dancing+Script:wght@400;700&family=Pacifico&family=Be+Vietnam+Pro:wght@600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <style>
         /* ============================================
            RESET & MOBILE-FIRST
            ============================================ */
+        :root {
+            --bg-top: #080015;
+            --bg-mid: #1a0636;
+            --bg-bottom: #2f1952;
+            --glass: rgba(255,255,255,0.1);
+            --glass-border: rgba(255,255,255,0.16);
+        }
+
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         html, body {
-            width: 100%; height: 100%;
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
             overflow: hidden;
             font-family: 'Quicksand', sans-serif;
             touch-action: manipulation;
@@ -24,9 +34,38 @@
         }
 
         body {
-            background: linear-gradient(180deg, #0a0015 0%, #1a0533 40%, #2d1b4e 70%, #1a0533 100%);
+            min-height: 100dvh;
+            background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 42%, var(--bg-bottom) 72%, #18052f 100%);
             color: #fff;
             position: relative;
+            overscroll-behavior: none;
+            overflow: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: -18%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::before {
+            background:
+                radial-gradient(48% 44% at 14% 20%, rgba(255, 120, 190, 0.17), transparent 72%),
+                radial-gradient(35% 30% at 84% 28%, rgba(110, 180, 255, 0.14), transparent 74%),
+                radial-gradient(45% 40% at 60% 86%, rgba(255, 200, 130, 0.1), transparent 76%);
+            animation: skyDrift 24s ease-in-out infinite alternate;
+        }
+
+        body::after {
+            background: radial-gradient(50% 60% at 50% 120%, rgba(8, 0, 25, 0.72), rgba(8, 0, 25, 0));
+        }
+
+        @keyframes skyDrift {
+            from { transform: translate3d(0, 0, 0) scale(1); }
+            to { transform: translate3d(-1.5%, 2%, 0) scale(1.03); }
         }
 
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
@@ -37,6 +76,7 @@
         .stars-canvas {
             position: fixed; inset: 0;
             z-index: 0; pointer-events: none;
+            opacity: 0.95;
         }
 
         /* ============================================
@@ -46,14 +86,16 @@
             position: fixed;
             pointer-events: none;
             z-index: 1;
-            opacity: 0.1;
+            opacity: 0.14;
             will-change: transform;
+            transform: translate3d(0,0,0);
+            contain: layout paint style;
             animation: bgUp linear infinite;
         }
 
         @keyframes bgUp {
-            0%   { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(20px, -120vh) rotate(200deg); }
+            0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+            100% { transform: translate3d(20px, -120vh, 0) rotate(200deg); }
         }
 
         /* ============================================
@@ -64,41 +106,56 @@
             top: 0; left: 0; right: 0;
             z-index: 200;
             text-align: center;
-            padding: 12px 16px 16px;
+            padding: calc(16px + env(safe-area-inset-top)) 14px 10px;
             background: linear-gradient(180deg,
-                rgba(10,0,21,0.97) 0%,
-                rgba(10,0,21,0.8) 65%,
+                rgba(9,0,23,0.96) 0%,
+                rgba(9,0,23,0.82) 62%,
                 transparent 100%);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             pointer-events: none;
         }
 
         .header-title {
-            font-size: clamp(1.15rem, 5vw, 1.7rem);
-            font-weight: 700;
-            background: linear-gradient(135deg, #ffd700, #ffaa00, #ffe066, #ffd700);
-            background-size: 300% 300%;
+            font-family: 'Pacifico', 'Be Vietnam Pro', 'Dancing Script', cursive;
+            font-size: clamp(1.05rem, 2vw + 0.55rem, 2.05rem);
+            font-weight: 400;
+            letter-spacing: 0.012em;
+            line-height: 1.32;
+            color: #ffdee8;
+            background: linear-gradient(130deg, #ff6b8a 0%, #ff8ca8 36%, #ffd4df 62%, #ff6b8a 100%);
+            background-size: 230% 230%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: goldShimmer 4s ease infinite;
-            line-height: 1.3;
+            text-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 0 16px rgba(255,120,165,0.25);
+            animation: titleFlow 5s ease-in-out infinite;
+            white-space: normal;
+            text-wrap: balance;
+            max-width: min(95vw, 980px);
+            margin: 5px auto 0;
+            padding: 0.12em 8px 0.04em;
+            overflow: visible;
+            font-feature-settings: "liga" 1;
         }
 
-        @keyframes goldShimmer {
+        @keyframes titleFlow {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
 
         .header-sub {
             font-size: 0.72rem;
-            color: rgba(255,255,255,0.4);
-            margin-top: 2px;
-            font-weight: 500;
+            color: rgba(255,241,250,0.72);
+            margin-top: 4px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-shadow: 0 1px 10px rgba(34,14,62,0.5);
         }
 
         .header-badge {
             display: inline-block;
-            margin-top: 4px;
+            margin-top: 5px;
             padding: 2px 12px;
             border-radius: 50px;
             background: rgba(255,255,255,0.07);
@@ -126,10 +183,11 @@
             position: absolute;
             width: 130px;
             border-radius: 16px;
-            background: rgba(255,255,255,0.08);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1.5px solid rgba(255,255,255,0.14);
+            background: var(--glass);
+            backdrop-filter: blur(9px);
+            -webkit-backdrop-filter: blur(9px);
+            border: 1.5px solid var(--glass-border);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.25);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -138,6 +196,8 @@
             cursor: pointer;
             pointer-events: auto;
             will-change: transform;
+            contain: layout paint style;
+            transform: translateZ(0);
             z-index: 11;
 
             /* Bắt đầu ở trên viewport */
@@ -177,7 +237,7 @@
             background: var(--glow);
             opacity: 0;
             z-index: -1;
-            filter: blur(14px);
+            filter: blur(11px);
             animation: glowPulse 3s ease-in-out infinite var(--glow-d);
         }
 
@@ -235,12 +295,12 @@
            ============================================ */
         .caught-tray {
             position: fixed;
-            bottom: 54px;
+            bottom: calc(56px + env(safe-area-inset-bottom));
             left: 0; right: 0;
             z-index: 50;
             display: flex;
             gap: 4px;
-            padding: 0 8px;
+            padding: 0 10px;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
@@ -248,6 +308,7 @@
             pointer-events: auto;
             min-height: 40px;
             align-items: center;
+            scroll-snap-type: x proximity;
         }
 
         .caught-tray::-webkit-scrollbar { display: none; }
@@ -265,6 +326,7 @@
             white-space: nowrap;
             transition: transform 0.15s;
             animation: chipIn 0.3s ease both;
+            scroll-snap-align: center;
         }
 
         .caught-chip:active { transform: scale(0.93); }
@@ -283,7 +345,7 @@
             z-index: 1000;
             justify-content: center;
             align-items: center;
-            padding: 12px;
+            padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
             background: rgba(5,0,15,0);
             transition: background 0.35s ease;
         }
@@ -296,6 +358,7 @@
            ============================================ */
         .letter-wrapper {
             width: min(360px, 92vw);
+            max-height: min(82dvh, 720px);
             position: relative;
             transform: scale(0.4);
             opacity: 0;
@@ -342,6 +405,8 @@
             margin-top: -2px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
             overflow: hidden;
+            max-height: min(76dvh, 620px);
+            overflow-y: auto;
         }
 
         .env-body::before {
@@ -489,14 +554,15 @@
             bottom: 0; left: 0; right: 0;
             z-index: 100;
             background: linear-gradient(0deg,
-                rgba(10,0,21,0.97) 0%,
-                rgba(10,0,21,0.75) 70%,
+                rgba(9,0,23,0.97) 0%,
+                rgba(9,0,23,0.77) 70%,
                 transparent 100%);
             padding: 10px 16px 14px;
-            padding-bottom: max(14px, env(safe-area-inset-bottom));
+            padding-bottom: max(14px, calc(env(safe-area-inset-bottom) + 10px));
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
         }
 
         .bottom-text {
@@ -518,16 +584,77 @@
             font-size: 0.6rem;
             color: rgba(255,255,255,0.5);
             font-weight: 600;
+            white-space: nowrap;
         }
 
         /* ============================================
            RESPONSIVE
            ============================================ */
+        @media (max-width: 480px) {
+            .header-title {
+                font-size: clamp(0.85rem, 4.2vw + 0.1rem, 1.16rem);
+                line-height: 1.36;
+                max-width: 97vw;
+                padding: 0.14em 2px 0.06em;
+            }
+            .header-sub { font-size: 0.66rem; }
+            .header-badge { font-size: 0.5rem; padding: 2px 9px; }
+            .envelope {
+                width: 124px;
+                border-radius: 14px;
+                padding: 10px 7px 8px;
+            }
+            .env-icon { font-size: 1.5rem; }
+            .env-name { font-size: 0.68rem; }
+            .caught-chip { font-size: 0.54rem; }
+            .letter-wrapper { width: min(350px, 94vw); }
+            .letter-inner { padding: 22px 16px 18px; }
+            .letter-msg { font-size: 0.9rem; line-height: 1.65; }
+            .btn-l { padding: 9px 16px; font-size: 0.78rem; }
+            .bottom-text { font-size: 0.64rem; }
+            .badge-read { font-size: 0.56rem; }
+        }
+
         @media (min-width: 500px) {
             .envelope { width: 145px; }
         }
         @media (min-width: 768px) {
             .envelope { width: 160px; }
+        }
+
+        .low-power body::before { animation: none; }
+        .low-power .envelope {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            background: rgba(255,255,255,0.12);
+        }
+        .low-power .envelope::after { filter: blur(8px); opacity: 0.25; }
+
+        .paused .bg-petal,
+        .paused .envelope,
+        .paused .envelope::after,
+        .paused .header-title,
+        .paused .bottom-text {
+            animation-play-state: paused !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            body::before,
+            .header-title,
+            .bottom-text,
+            .bg-petal,
+            .envelope::after,
+            .type-cursor {
+                animation: none !important;
+            }
+
+            .envelope,
+            .caught-chip,
+            .letter-wrapper,
+            .letter-inner,
+            .modal-overlay {
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
@@ -538,8 +665,7 @@
 
     <!-- Header cố định -->
     <header class="header">
-        <h1 class="header-title">💌 8/3 – Những Lời Yêu Thương</h1>
-        <p class="header-sub">Bắt lấy phong bì đang rơi để đọc lời chúc...</p>
+        <h1 class="header-title">- 8/3 MỪNG NGÀY QUỐC TẾ PHỤ NỮ</h1>
         <span class="header-badge" id="headerBadge"></span>
     </header>
 
@@ -633,82 +759,358 @@
     // ============================================
     // BIẾN TOÀN CỤC
     // ============================================
-    const readSet = new Set();       // index đã đọc
+    const STORAGE_KEY = 'webqr-read-v2';
+    const readSet = new Set();
     let typingAbort = null;
-    const FIRST_WAVE_MS = 20000;     // giữ lại để dễ tinh chỉnh về sau
     const fallZone = document.getElementById('fallZone');
     const caughtTray = document.getElementById('caughtTray');
     const activeEnvelopes = new Set();
     const activeIndices = new Set();
+    const delayedSpawns = new Set();
     const SLOTS_PER_LANE = 3;
     const SLOT_PHASES = [];
-    const MAX_ACTIVE = Math.min(12, Math.max(6, Math.floor(innerWidth / 110)));
-    const SPAWN_GAP_MS = 700;
+    const SPAWN_GAP_MS = 560;
     const FALL_CYCLES_BEFORE_SWAP = 2;
     let spawnQueue = [];
     const slotMap = new Map(); // el -> { lane, slot }
     const laneSpeed = new Map(); // laneIndex -> fallDur
+    let maxActive = 8;
+    let starsCtrl = null;
+    let petalsCtrl = null;
+    let resizeRaf = 0;
+    let lastViewport = { w: innerWidth, h: innerHeight };
+
+    const mediaReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mediaCoarsePointer = window.matchMedia('(pointer: coarse)');
+    const perf = {
+        reducedMotion: false,
+        coarsePointer: false,
+        lowPower: false,
+        memory: navigator.deviceMemory || 4,
+        cores: navigator.hardwareConcurrency || 4
+    };
+
+    function random(min, max) { return min + Math.random() * (max - min); }
+
+    function getEnvelopeWidth() {
+        return innerWidth < 400 ? 124 : (innerWidth < 600 ? 145 : 160);
+    }
+
+    function computeMaxActive() {
+        const base = Math.floor(innerWidth / (perf.coarsePointer ? 122 : 112));
+        const min = perf.lowPower ? 4 : 6;
+        const max = perf.lowPower ? 9 : 12;
+        return Math.min(max, Math.max(min, base));
+    }
+
+    function refreshPerfFlags() {
+        const smallestEdge = Math.min(innerWidth, innerHeight);
+        perf.reducedMotion = mediaReduceMotion.matches;
+        perf.coarsePointer = mediaCoarsePointer.matches;
+        perf.lowPower = perf.reducedMotion || perf.memory <= 4 || perf.cores <= 4 || smallestEdge < 420;
+        maxActive = computeMaxActive();
+        document.documentElement.classList.toggle('low-power', perf.lowPower);
+    }
+
+    function scheduleSpawn(delay) {
+        const timer = setTimeout(() => {
+            delayedSpawns.delete(timer);
+            spawnNext();
+        }, delay);
+        delayedSpawns.add(timer);
+    }
+
+    function clearDelayedSpawns() {
+        delayedSpawns.forEach(clearTimeout);
+        delayedSpawns.clear();
+    }
+
+    function saveReadState() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...readSet])); } catch (e) {}
+    }
+
+    function loadReadState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return;
+            parsed.forEach((idx) => {
+                if (Number.isInteger(idx) && idx >= 0 && idx < wishes.length) readSet.add(idx);
+            });
+        } catch (e) {}
+    }
 
     // ============================================
     // CANVAS SAO NHẤP NHÁY
     // ============================================
     function initStars() {
         const cvs = document.getElementById('starsCanvas');
-        const ctx = cvs.getContext('2d');
+        const ctx = cvs.getContext('2d', { alpha: true, desynchronized: true });
+        if (!ctx) return { start: () => {}, stop: () => {}, refresh: () => {} };
+
         let stars = [];
+        let meteors = [];
+        let running = false;
+        let rafId = 0;
+        let width = innerWidth;
+        let height = innerHeight;
+        let dpr = 1;
+        let lastTs = 0;
+        let nextMeteorAt = 0;
 
-        function resize() { cvs.width = innerWidth; cvs.height = innerHeight; }
+        function starCount() {
+            const area = width * height;
+            const density = perf.lowPower ? 0.0001 : 0.00015;
+            const min = perf.lowPower ? 70 : 95;
+            const max = perf.lowPower ? 140 : 220;
+            return Math.min(max, Math.max(min, Math.round(area * density)));
+        }
 
-        function make() {
+        function rebuildStars() {
+            const count = starCount();
             stars = [];
-            for (let i = 0; i < 150; i++) {
+            for (let i = 0; i < count; i++) {
                 stars.push({
-                    x: Math.random() * cvs.width,
-                    y: Math.random() * cvs.height,
-                    r: Math.random() * 1.4 + 0.3,
-                    base: Math.random() * 0.5 + 0.2,
-                    spd: Math.random() * 0.008 + 0.003,
-                    off: Math.random() * Math.PI * 2
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    r: random(0.35, perf.lowPower ? 1.25 : 1.55),
+                    base: random(0.22, 0.65),
+                    twinkle: random(0.08, 0.34),
+                    speed: random(0.0012, 0.0033),
+                    offset: Math.random() * Math.PI * 2
                 });
             }
         }
 
-        function draw(t) {
-            ctx.clearRect(0, 0, cvs.width, cvs.height);
-            for (const s of stars) {
-                const a = s.base + Math.sin(t * s.spd + s.off) * 0.35;
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255,255,255,${Math.max(0, Math.min(1, a))})`;
-                ctx.fill();
-            }
-            requestAnimationFrame(draw);
+        function resize() {
+            width = innerWidth;
+            height = innerHeight;
+            dpr = Math.min(window.devicePixelRatio || 1, perf.lowPower ? 1.5 : 2);
+            cvs.width = Math.max(1, Math.round(width * dpr));
+            cvs.height = Math.max(1, Math.round(height * dpr));
+            cvs.style.width = width + 'px';
+            cvs.style.height = height + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            rebuildStars();
         }
 
-        resize(); make();
-        requestAnimationFrame(draw);
-        addEventListener('resize', () => { resize(); make(); });
+        function drawStars(ts) {
+            for (const s of stars) {
+                const alpha = s.base + Math.sin(ts * s.speed + s.offset) * s.twinkle;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${Math.max(0.04, Math.min(1, alpha))})`;
+                ctx.fill();
+            }
+        }
+
+        function scheduleMeteor(ts) {
+            const minDelay = perf.lowPower ? 4300 : 2500;
+            const maxDelay = perf.lowPower ? 7600 : 5000;
+            nextMeteorAt = ts + random(minDelay, maxDelay);
+        }
+
+        function spawnMeteor(ts) {
+            if (perf.reducedMotion) {
+                scheduleMeteor(ts);
+                return;
+            }
+
+            const burst = perf.lowPower ? 1 : (Math.random() < 0.34 ? 2 : 1);
+            for (let i = 0; i < burst; i++) {
+                const angle = random(Math.PI / 8, Math.PI / 5.4);
+                const dx = Math.cos(angle);
+                const dy = Math.sin(angle);
+                const speed = perf.lowPower ? random(520, 700) : random(650, 910);
+                meteors.push({
+                    x: random(-width * 0.2, width * 0.72) - i * random(18, 44),
+                    y: random(-32, height * 0.34) + i * random(8, 26),
+                    dx,
+                    dy,
+                    vx: dx * speed,
+                    vy: dy * speed,
+                    len: perf.lowPower ? random(68, 108) : random(92, 154),
+                    life: 0,
+                    maxLife: random(650, 1100),
+                    alpha: random(0.68, 0.96)
+                });
+            }
+
+            const cap = perf.lowPower ? 4 : 6;
+            while (meteors.length > cap) meteors.shift();
+            scheduleMeteor(ts);
+        }
+
+        function drawMeteors(dt) {
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                const m = meteors[i];
+                m.life += dt;
+                m.x += m.vx * (dt / 1000);
+                m.y += m.vy * (dt / 1000);
+
+                if (m.life >= m.maxLife || m.x - m.len > width || m.y - m.len > height) {
+                    meteors.splice(i, 1);
+                    continue;
+                }
+
+                const fadeIn = Math.min(1, m.life / 110);
+                const fadeOut = Math.min(1, (m.maxLife - m.life) / 260);
+                const alpha = m.alpha * Math.max(0.04, Math.min(fadeIn, fadeOut));
+                const tx = m.x - m.dx * m.len;
+                const ty = m.y - m.dy * m.len;
+                const grad = ctx.createLinearGradient(m.x, m.y, tx, ty);
+                grad.addColorStop(0, `rgba(255,255,255,${alpha})`);
+                grad.addColorStop(0.4, `rgba(255,234,194,${alpha * 0.75})`);
+                grad.addColorStop(1, 'rgba(255,255,255,0)');
+
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(m.x, m.y);
+                ctx.lineWidth = perf.lowPower ? 1.4 : 1.8;
+                ctx.strokeStyle = grad;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, perf.lowPower ? 1.25 : 1.6, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${Math.min(1, alpha + 0.15)})`;
+                ctx.fill();
+            }
+        }
+
+        function frame(ts) {
+            if (!running) return;
+            if (!lastTs) lastTs = ts;
+            const dt = Math.min(40, ts - lastTs);
+            lastTs = ts;
+
+            ctx.clearRect(0, 0, width, height);
+            drawStars(ts);
+
+            if (!perf.reducedMotion) {
+                if (ts >= nextMeteorAt) spawnMeteor(ts);
+                drawMeteors(dt);
+            }
+
+            rafId = requestAnimationFrame(frame);
+        }
+
+        function drawStaticSky() {
+            ctx.clearRect(0, 0, width, height);
+            drawStars(performance.now());
+        }
+
+        function start() {
+            if (running || document.hidden) return;
+            running = true;
+            lastTs = 0;
+            if (!nextMeteorAt) scheduleMeteor(performance.now());
+            rafId = requestAnimationFrame(frame);
+        }
+
+        function stop() {
+            running = false;
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = 0;
+            }
+        }
+
+        function refresh() {
+            stop();
+            meteors = [];
+            resize();
+            if (perf.reducedMotion) drawStaticSky();
+            else {
+                scheduleMeteor(performance.now());
+                start();
+            }
+        }
+
+        resize();
+        if (perf.reducedMotion) drawStaticSky();
+        else start();
+
+        return { start, stop, refresh };
     }
 
     // ============================================
     // HOA NỀN TRÔI NHẸ
     // ============================================
     function initPetals() {
-        const items = ['🌸','🌹','🌷','💐','🌺'];
-        function spawn() {
+        const items = ['🌸', '🌹', '🌷', '💐', '🌺'];
+        let timer = 0;
+        let running = false;
+        let activePetals = 0;
+
+        function maxPetals() {
+            if (perf.reducedMotion) return 0;
+            return perf.lowPower ? 3 : 7;
+        }
+
+        function spawn(force = false) {
+            if ((!running && !force) || perf.reducedMotion) return;
+            if (activePetals >= maxPetals()) return;
+
             const el = document.createElement('div');
+            const duration = random(perf.lowPower ? 24 : 18, perf.lowPower ? 36 : 30);
             el.className = 'bg-petal';
             el.textContent = items[Math.floor(Math.random() * items.length)];
-            el.style.left = Math.random() * 100 + 'vw';
-            el.style.bottom = '-20px';
-            el.style.fontSize = (8 + Math.random() * 8) + 'px';
-            el.style.animationDuration = (18 + Math.random() * 18) + 's';
-            el.style.animationDelay = Math.random() * 3 + 's';
+            el.style.left = random(-3, 98) + 'vw';
+            el.style.bottom = '-24px';
+            el.style.fontSize = random(perf.lowPower ? 9 : 10, perf.lowPower ? 15 : 20) + 'px';
+            el.style.animationDuration = duration.toFixed(2) + 's';
+            el.style.animationDelay = random(0, 1.8).toFixed(2) + 's';
             document.body.appendChild(el);
-            setTimeout(() => el.remove(), 40000);
+
+            activePetals++;
+            setTimeout(() => {
+                if (el.parentNode) el.remove();
+                activePetals = Math.max(0, activePetals - 1);
+            }, (duration + 2) * 1000);
         }
-        for (let i = 0; i < 6; i++) setTimeout(spawn, i * 400);
-        setInterval(spawn, 3500);
+
+        function schedule() {
+            clearTimeout(timer);
+            if (!running || perf.reducedMotion) return;
+            const next = random(perf.lowPower ? 3500 : 2300, perf.lowPower ? 6200 : 4300);
+            timer = setTimeout(() => {
+                spawn();
+                schedule();
+            }, next);
+        }
+
+        function start() {
+            if (running || perf.reducedMotion || document.hidden) return;
+            running = true;
+            const burst = perf.lowPower ? 2 : 5;
+            for (let i = 0; i < burst; i++) {
+                setTimeout(() => spawn(true), i * 250);
+            }
+            schedule();
+        }
+
+        function stop(removeExisting = false) {
+            running = false;
+            clearTimeout(timer);
+            timer = 0;
+            if (removeExisting) {
+                document.querySelectorAll('.bg-petal').forEach((el) => el.remove());
+                activePetals = 0;
+            }
+        }
+
+        function refresh() {
+            if (perf.reducedMotion) {
+                stop(true);
+                return;
+            }
+            if (!running && !document.hidden) start();
+            else schedule();
+        }
+
+        start();
+        return { start, stop, refresh };
     }
 
     // ============================================
@@ -727,44 +1129,41 @@
     // TẠO 1 PHONG BÌ RƠI
     // ============================================
     function spawnEnvelope(idx) {
+        if (idx < 0 || idx >= wishes.length) return;
         const w = wishes[idx];
-        const vw = innerWidth;
-        const envW = vw < 400 ? 130 : (vw < 600 ? 145 : 160);
+        const envW = getEnvelopeWidth();
 
         const el = document.createElement('div');
         el.className = 'envelope';
         el.dataset.idx = idx;
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', 'Mở thư của ' + w.from);
 
-        // Vị trí theo "lane/slot" để không chồng lên nhau
         const slot = pickSlot(envW);
         if (slot === null) return;
         el.style.left = slot.left + 'px';
         slotMap.set(el, { lane: slot.lane, slot: slot.slot });
         el.style.width = envW + 'px';
 
-        // Thời gian rơi: 11-17s (nhanh hơn 1 tí)
-        const laneDur = laneSpeed.get(slot.lane) ?? (11 + Math.random() * 6).toFixed(1);
+        const laneDur = laneSpeed.get(slot.lane) ?? random(perf.lowPower ? 12.5 : 11, perf.lowPower ? 18.8 : 16.8).toFixed(1);
         laneSpeed.set(slot.lane, laneDur);
         const fallDur = laneDur;
-        // Thời gian lắc: 6-10s (dịu hơn)
-        const swayDur = (6 + Math.random() * 4).toFixed(1);
-        // Biên độ lắc nhỏ hơn
-        const sx = () => (Math.random() * 18 - 9).toFixed(0);
-        const rot = (Math.random() * 4 - 2).toFixed(1);
+        const swayDur = random(5.5, 9.8).toFixed(1);
+        const sx = () => random(-9, 9).toFixed(0);
+        const rot = random(-2.4, 2.4).toFixed(1);
 
         el.style.setProperty('--fall-dur', fallDur + 's');
         el.style.setProperty('--fall-delay', (-slot.phase * parseFloat(fallDur)).toFixed(2) + 's');
         el.style.setProperty('--sway-dur', swayDur + 's');
-        el.style.setProperty('--sway-delay', (Math.random() * -3).toFixed(1) + 's');
+        el.style.setProperty('--sway-delay', random(-3, 0).toFixed(1) + 's');
         el.style.setProperty('--r0', rot + 'deg');
         el.style.setProperty('--sx1', sx() + 'px');
         el.style.setProperty('--sx2', sx() + 'px');
         el.style.setProperty('--sx3', sx() + 'px');
         el.style.setProperty('--glow', w.color + '88');
         el.style.setProperty('--glow-dim', w.color + '33');
-        el.style.setProperty('--glow-d', (Math.random() * -3).toFixed(1) + 's');
+        el.style.setProperty('--glow-d', random(-3, 0).toFixed(1) + 's');
 
-        // Đã đọc?
         if (readSet.has(idx)) el.classList.add('read');
 
         el.innerHTML = `
@@ -774,50 +1173,40 @@
             <span class="env-hint">bắt lấy!</span>
         `;
 
-        // Click/tap → mở thư
-        el.addEventListener('click', () => {
-            openLetter(idx);
-        });
-
         fallZone.appendChild(el);
         activeEnvelopes.add(el);
         activeIndices.add(idx);
         updateHeaderBadge();
-
-        // Trigger opacity
         requestAnimationFrame(() => el.classList.add('spawned'));
 
-        // Mỗi vòng rơi → đổi vị trí ngang, tránh chồng lên nhau
         let cycles = 0;
         el.addEventListener('animationiteration', (e) => {
             if (e.animationName !== 'envFall') return;
             if (readSet.has(idx)) el.classList.add('read');
             cycles++;
 
-            // Đổi thẻ sau vài vòng để giảm số lượng hiển thị cùng lúc
             if (cycles >= FALL_CYCLES_BEFORE_SWAP) {
                 activeEnvelopes.delete(el);
                 activeIndices.delete(idx);
                 freeSlot(el);
                 el.remove();
                 updateHeaderBadge();
-                setTimeout(spawnNext, 300);
+                scheduleSpawn(perf.lowPower ? 380 : 260);
             }
         });
     }
 
     // ============================================
-    // KHỞI CHẠY SÓNG PHONG BÌ
-    // Đảm bảo TẤT CẢ spawn trong 20s đầu
-    // Thứ tự ngẫu nhiên (shuffle)
+    // LUỒNG SPAWN PHONG BÌ
+    // Ưu tiên mượt trên mobile và phân bổ ngẫu nhiên
     // ============================================
     function refillQueue() {
         const n = wishes.length;
-        spawnQueue = shuffle([...Array(n).keys()].filter(i => !activeIndices.has(i)));
+        spawnQueue = shuffle([...Array(n).keys()].filter((i) => !activeIndices.has(i)));
     }
 
     function spawnNext() {
-        if (activeIndices.size >= MAX_ACTIVE) return;
+        if (activeIndices.size >= maxActive) return;
         if (!hasFreeSlot()) return;
         if (!spawnQueue.length) refillQueue();
         if (!spawnQueue.length) return;
@@ -827,33 +1216,59 @@
     }
 
     function updateHeaderBadge() {
+        const badge = document.getElementById('headerBadge');
+        if (!badge) return;
         const active = activeIndices.size;
-        const total = wishes.length;
-        document.getElementById('headerBadge').textContent =
-            active + '/' + total + ' lời chúc đang rơi 🕊️';
+        badge.textContent = active + '/25 lời chúc';
     }
 
-    function startFalling() {
-        const initialCount = Math.min(MAX_ACTIVE, wishes.length);
-        refillQueue();
+    function clearActiveEnvelopes() {
+        activeEnvelopes.forEach((el) => {
+            if (el.parentNode) el.remove();
+        });
+        activeEnvelopes.clear();
+        activeIndices.clear();
+        slotMap.clear();
+    }
+
+    function seedWave() {
+        clearDelayedSpawns();
+        const initialCount = Math.min(maxActive, wishes.length);
         for (let i = 0; i < initialCount; i++) {
-            setTimeout(spawnNext, i * SPAWN_GAP_MS);
+            scheduleSpawn(i * SPAWN_GAP_MS);
         }
         updateHeaderBadge();
         updateBadge();
     }
 
+    function startFalling() {
+        clearActiveEnvelopes();
+        laneSpeed.clear();
+        refillQueue();
+        seedWave();
+    }
+
+    function getLaneCount(envW) {
+        const usableWidth = Math.max(0, innerWidth - envW - 20);
+        const desiredGap = perf.coarsePointer ? 128 : 144;
+        const auto = Math.floor(usableWidth / desiredGap) + 1;
+        return Math.min(4, Math.max(2, auto));
+    }
+
     function buildLanes(envW) {
-        const gap = 10;
         const minLeft = 10;
         const maxLeft = Math.max(10, innerWidth - envW - 10);
-        const span = maxLeft - minLeft;
-        const count = 3;
+        const count = getLaneCount(envW);
         const lanes = [];
-        const step = span / (count - 1);
+
+        if (count === 1 || maxLeft <= minLeft) {
+            lanes.push({ index: 0, left: (minLeft + maxLeft) / 2 });
+            return lanes;
+        }
+
+        const step = (maxLeft - minLeft) / (count - 1);
         for (let i = 0; i < count; i++) {
-            const left = minLeft + i * step;
-            lanes.push({ index: i, left });
+            lanes.push({ index: i, left: minLeft + i * step });
         }
         return lanes;
     }
@@ -889,16 +1304,15 @@
     }
 
     function hasFreeSlot() {
-        const envW = innerWidth < 400 ? 130 : (innerWidth < 600 ? 145 : 160);
-        const slots = buildSlots(envW);
+        const slots = buildSlots(getEnvelopeWidth());
         const used = getUsedSlots();
-        return slots.some(s => !used.has(s.id));
+        return slots.some((s) => !used.has(s.id));
     }
 
     function pickSlot(envW) {
         const slots = buildSlots(envW);
         const used = getUsedSlots();
-        const available = slots.filter(s => !used.has(s.id));
+        const available = slots.filter((s) => !used.has(s.id));
         if (!available.length) return null;
         return available[Math.floor(Math.random() * available.length)];
     }
@@ -911,26 +1325,23 @@
     // MỞ THƯ
     // ============================================
     function openLetter(idx) {
+        if (!Number.isInteger(idx) || idx < 0 || idx >= wishes.length) return;
         const w = wishes[idx];
         const modal = document.getElementById('modal');
         const wrap = document.getElementById('letterWrap');
 
-        // Đánh dấu đã đọc
         readSet.add(idx);
-        // Cập nhật tất cả phong bì cùng index đang rơi
-        document.querySelectorAll(`.envelope[data-idx="${idx}"]`).forEach(e => e.classList.add('read'));
+        saveReadState();
+        document.querySelectorAll(`.envelope[data-idx="${idx}"]`).forEach((e) => e.classList.add('read'));
         updateBadge();
         addCaughtChip(idx);
 
-        // Màu nắp phong bì
         document.getElementById('flapShape').style.background =
             `linear-gradient(135deg, ${w.color}, ${shade(w.color, -25)})`;
 
-        // Glow
         document.querySelector('.env-body').style.boxShadow =
             `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${w.color}44`;
 
-        // Nội dung
         document.getElementById('lName').textContent = w.from + ' 💌';
         document.getElementById('lTo').textContent = 'Gửi: ' + w.to + ' 🌸';
         document.getElementById('lSigEmoji').textContent = w.avatar;
@@ -939,18 +1350,18 @@
         const msgEl = document.getElementById('lMsg');
         msgEl.textContent = '';
 
-        // Hiện modal
         wrap.classList.remove('closing');
         modal.classList.add('show');
         requestAnimationFrame(() => {
             requestAnimationFrame(() => modal.classList.add('fade-in'));
         });
 
-        // Typewriter
         if (typingAbort) typingAbort();
+        const typingSpeed = perf.coarsePointer ? 24 : 20;
+        const delay = perf.reducedMotion ? 90 : 800;
         setTimeout(() => {
-            typingAbort = typewriter(msgEl, w.message, 28, () => miniConfetti());
-        }, 900);
+            typingAbort = typewriter(msgEl, w.message, typingSpeed, () => miniConfetti());
+        }, delay);
     }
 
     // ============================================
@@ -967,7 +1378,7 @@
         setTimeout(() => {
             modal.classList.remove('show');
             wrap.classList.remove('closing');
-        }, 350);
+        }, 330);
     }
 
     document.getElementById('btnX').addEventListener('click', closeLetter);
@@ -977,11 +1388,26 @@
     });
     document.getElementById('btnFirework').addEventListener('click', bigConfetti);
 
+    fallZone.addEventListener('click', (e) => {
+        const env = e.target.closest('.envelope');
+        if (!env) return;
+        openLetter(Number(env.dataset.idx));
+    });
+
+    caughtTray.addEventListener('click', (e) => {
+        const chip = e.target.closest('.caught-chip');
+        if (!chip) return;
+        openLetter(Number(chip.dataset.ci));
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLetter();
+    });
+
     // ============================================
     // THANH PHONG BÌ ĐÃ BẮT (caught chips)
     // ============================================
     function addCaughtChip(idx) {
-        // Không thêm trùng
         if (caughtTray.querySelector(`[data-ci="${idx}"]`)) return;
 
         const w = wishes[idx];
@@ -990,10 +1416,8 @@
         chip.dataset.ci = idx;
         chip.textContent = w.avatar + ' ' + w.from;
         chip.style.borderColor = w.color + '55';
-        chip.addEventListener('click', () => openLetter(idx));
         caughtTray.appendChild(chip);
 
-        // Scroll đến chip mới
         requestAnimationFrame(() => {
             caughtTray.scrollLeft = caughtTray.scrollWidth;
         });
@@ -1003,6 +1427,12 @@
     // TYPEWRITER
     // ============================================
     function typewriter(el, text, speed, done) {
+        if (perf.reducedMotion) {
+            el.textContent = text;
+            if (done) done();
+            return () => {};
+        }
+
         let i = 0, stopped = false;
         const cur = document.createElement('span');
         cur.className = 'type-cursor';
@@ -1027,18 +1457,37 @@
     // CONFETTI
     // ============================================
     function miniConfetti() {
+        if (perf.reducedMotion || typeof confetti !== 'function') return;
         confetti({
-            particleCount: 45, spread: 55, origin: { y: 0.65 },
-            colors: ['#ff6b9d','#a29bfe','#fd79a8','#ffd700','#55efc4','#ff80ab']
+            particleCount: perf.lowPower ? 24 : 42,
+            spread: perf.lowPower ? 45 : 58,
+            origin: { y: 0.65 },
+            colors: ['#ff6b9d','#a29bfe','#fd79a8','#ffd700','#55efc4','#ff80ab'],
+            disableForReducedMotion: true
         });
     }
 
     function bigConfetti() {
-        const end = Date.now() + 2200;
+        if (perf.reducedMotion || typeof confetti !== 'function') return;
+        const end = Date.now() + (perf.lowPower ? 1300 : 2000);
         const c = ['#ff6b9d','#a29bfe','#fd79a8','#ffd700','#55efc4','#e91e63','#ff80ab','#f06292'];
         (function go() {
-            confetti({ particleCount: 5, angle: 60, spread: 50, origin: { x: 0 }, colors: c });
-            confetti({ particleCount: 5, angle: 120, spread: 50, origin: { x: 1 }, colors: c });
+            confetti({
+                particleCount: perf.lowPower ? 3 : 5,
+                angle: 60,
+                spread: perf.lowPower ? 42 : 52,
+                origin: { x: 0 },
+                colors: c,
+                disableForReducedMotion: true
+            });
+            confetti({
+                particleCount: perf.lowPower ? 3 : 5,
+                angle: 120,
+                spread: perf.lowPower ? 42 : 52,
+                origin: { x: 1 },
+                colors: c,
+                disableForReducedMotion: true
+            });
             if (Date.now() < end) requestAnimationFrame(go);
         })();
     }
@@ -1062,13 +1511,69 @@
         return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
     }
 
+    function setPausedState(paused) {
+        document.documentElement.classList.toggle('paused', paused);
+        if (paused) {
+            if (starsCtrl) starsCtrl.stop();
+            if (petalsCtrl) petalsCtrl.stop(false);
+        } else {
+            if (starsCtrl) starsCtrl.start();
+            if (petalsCtrl) petalsCtrl.refresh();
+        }
+    }
+
+    function handleVisibilityChange() {
+        setPausedState(document.hidden);
+    }
+
+    function handleResize() {
+        if (resizeRaf) return;
+        resizeRaf = requestAnimationFrame(() => {
+            resizeRaf = 0;
+            const current = { w: innerWidth, h: innerHeight };
+            const widthShift = Math.abs(current.w - lastViewport.w);
+            const orientationChanged = (current.w > current.h) !== (lastViewport.w > lastViewport.h);
+            lastViewport = current;
+
+            refreshPerfFlags();
+            if (starsCtrl) starsCtrl.refresh();
+            if (petalsCtrl) petalsCtrl.refresh();
+
+            if (widthShift >= 24 || orientationChanged) startFalling();
+        });
+    }
+
     // ============================================
     // KHỞI CHẠY
     // ============================================
     document.addEventListener('DOMContentLoaded', () => {
-        initStars();
-        initPetals();
+        refreshPerfFlags();
+        loadReadState();
+        [...readSet].sort((a, b) => a - b).forEach(addCaughtChip);
+        updateBadge();
+
+        starsCtrl = initStars();
+        petalsCtrl = initPetals();
         startFalling();
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('resize', handleResize, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleResize, { passive: true });
+        }
+
+        mediaReduceMotion.addEventListener('change', () => {
+            refreshPerfFlags();
+            if (starsCtrl) starsCtrl.refresh();
+            if (petalsCtrl) petalsCtrl.refresh();
+            startFalling();
+        });
+
+        mediaCoarsePointer.addEventListener('change', () => {
+            refreshPerfFlags();
+            laneSpeed.clear();
+            startFalling();
+        });
     });
     </script>
 </body>
