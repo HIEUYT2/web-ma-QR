@@ -463,6 +463,7 @@
             color: #4a2e3e;
             line-height: 1.8;
             text-align: center;
+            white-space: pre-line;
             min-height: 50px;
             font-weight: 500;
             padding: 0 2px;
@@ -562,7 +563,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 10px 12px;
+            flex-wrap: wrap;
+        }
+
+        .bottom-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 170px;
         }
 
         .bottom-text {
@@ -571,9 +580,45 @@
             animation: softGlow 3s ease infinite;
         }
 
+        .sync-status {
+            font-size: 0.58rem;
+            color: rgba(255,255,255,0.56);
+            min-height: 0.9rem;
+            line-height: 1.2;
+        }
+        .sync-status.info { color: rgba(220,232,255,0.86); }
+        .sync-status.ok { color: rgba(188,255,217,0.9); }
+        .sync-status.warn { color: rgba(255,212,218,0.92); }
+
         @keyframes softGlow {
             0%, 100% { color: rgba(255,200,220,0.35); }
             50% { color: rgba(255,200,220,0.8); }
+        }
+
+        .bottom-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .btn-reload {
+            border: 1px solid rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.09);
+            color: rgba(255,255,255,0.85);
+            border-radius: 999px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 6px 12px;
+            min-height: 34px;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.2s ease;
+        }
+        .btn-reload:active { transform: scale(0.95); }
+        .btn-reload:disabled {
+            opacity: 0.55;
+            cursor: default;
+            transform: none;
         }
 
         .badge-read {
@@ -612,6 +657,10 @@
             .letter-msg { font-size: 0.9rem; line-height: 1.65; }
             .btn-l { padding: 9px 16px; font-size: 0.78rem; }
             .bottom-text { font-size: 0.64rem; }
+            .sync-status { font-size: 0.52rem; }
+            .bottom-meta { min-width: 0; }
+            .bottom-controls { width: 100%; justify-content: space-between; margin-left: 0; }
+            .btn-reload { font-size: 0.54rem; padding: 5px 10px; min-height: 32px; }
             .badge-read { font-size: 0.56rem; }
         }
 
@@ -710,51 +759,61 @@
 
     <!-- Bottom bar -->
     <div class="bottom-bar">
-        <span class="bottom-text">🌸 Chúc Mừng 8/3 🌸</span>
-        <span class="badge-read" id="badgeRead"></span>
+        <div class="bottom-meta">
+            <span class="bottom-text">🌸 Chúc Mừng 8/3 🌸</span>
+            <span class="sync-status info" id="syncStatus">Đang tải lời chúc...</span>
+        </div>
+        <div class="bottom-controls">
+            <button class="btn-reload" id="btnReload" type="button">Tải lại lời chúc</button>
+            <span class="badge-read" id="badgeRead"></span>
+        </div>
     </div>
 
     <script>
     // ============================================================
-    // ✏️ DỮ LIỆU LỜI CHÚC — THAY TÊN & NỘI DUNG TẠI ĐÂY
-    //
-    // Cấu trúc mỗi phần tử:
-    //   from    : "Tên bạn nam"
-    //   avatar  : emoji đại diện trên phong bì
-    //   color   : mã màu hex → glow viền
-    //   message : nội dung lời chúc
-    //   to      : dòng "Gửi đến..."
-    //
-    // Thêm/bớt thoải mái — web tự điều chỉnh.
+    // DỮ LIỆU DỰ PHÒNG (dùng khi chưa cấu hình URL hoặc lỗi mạng)
     // ============================================================
-    const wishes = [
-      { from: "Bạn Nam 1",  avatar: "🌟", color: "#ff6b9d", message: "Chúc các bạn nữ 8/3 thật vui vẻ và hạnh phúc! Các bạn luôn là nguồn cảm hứng của cả lớp 🌸", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 2",  avatar: "⭐", color: "#a29bfe", message: "Ngày 8/3 chúc các bạn luôn xinh đẹp và rạng rỡ! Cảm ơn vì đã làm lớp mình thêm sắc màu 💐", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 3",  avatar: "🎯", color: "#fd79a8", message: "Chúc mừng ngày Quốc Tế Phụ Nữ! Mong các bạn luôn vui vẻ, học tốt và hạnh phúc mãi mãi ✨", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 4",  avatar: "🚀", color: "#74b9ff", message: "8/3 rồi! Chúc các chị em trong lớp mình luôn tươi vui như những bông hoa mùa xuân 🌺", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 5",  avatar: "💫", color: "#55efc4", message: "Nhân ngày 8/3, tụi mình muốn nói: các bạn nữ xịn xò lắm đó nha! Chúc các bạn ngày vui 🎉", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 6",  avatar: "🎸", color: "#fdcb6e", message: "Chúc 8/3 vui! Mong các bạn luôn mạnh khỏe, xinh đẹp và thành công trong mọi việc 🌟", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 7",  avatar: "🏆", color: "#e17055", message: "Các bạn nữ ơi, hôm nay là ngày của các bạn rồi! Chúc các bạn luôn rạng rỡ và hạnh phúc 💕", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 8",  avatar: "🌊", color: "#0984e3", message: "Chúc mừng 8/3! Cảm ơn các bạn vì đã luôn là những người bạn tuyệt vời của lớp mình 🌷", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 9",  avatar: "🎨", color: "#6c5ce7", message: "Ngày 8/3, tụi mình chúc các chị em luôn xinh tươi, vui vẻ như mùa xuân đẹp nhất 🌸✨", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 10", avatar: "🔥", color: "#d63031", message: "8/3 chúc các bạn nữ mãi trẻ đẹp, hạnh phúc! Lớp mình may mắn vì có các bạn đồng hành 💝", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 11", avatar: "🎵", color: "#e84393", message: "Nhạc vui ngày 8/3 dành cho các bạn nữ! Chúc các bạn luôn vui tươi và xinh đẹp mỗi ngày 🎶", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 12", avatar: "🌈", color: "#00b894", message: "Chúc các bạn nữ có ngày 8/3 rực rỡ như cầu vồng! Các bạn xứng đáng được hạnh phúc nhất 🌈", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 13", avatar: "🎭", color: "#fdcb6e", message: "Happy 8/3! Cảm ơn các bạn nữ đã mang tiếng cười đến cho lớp mình mỗi ngày 😄💐", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 14", avatar: "⚡", color: "#f39c12", message: "Ngày Quốc Tế Phụ Nữ chúc các bạn luôn mạnh mẽ, tự tin và tỏa sáng! Các bạn giỏi lắm ⚡✨", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 15", avatar: "🎪", color: "#e056a0", message: "8/3 vui nha! Mong các bạn nữ luôn cười thật tươi, vì nụ cười các bạn làm sáng cả lớp 😊🌸", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 16", avatar: "🌙", color: "#a29bfe", message: "Chúc các bạn nữ 8/3 an lành! Các bạn như ánh trăng – dịu dàng mà luôn tỏa sáng 🌙💕", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 17", avatar: "🦋", color: "#00cec9", message: "Chúc mừng 8/3! Mong các bạn nữ luôn tự do bay cao như cánh bướm, xinh đẹp và hạnh phúc 🦋", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 18", avatar: "🎤", color: "#ff7675", message: "Hát cho ngày 8/3: các bạn nữ là best! Chúc các bạn luôn vui vẻ, xinh xắn, tuyệt vời 🎤🌹", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 19", avatar: "🏅", color: "#f9ca24", message: "Huy chương vàng dành cho các bạn nữ vì luôn kiên cường và xinh đẹp! Chúc mừng 8/3 🏅💛", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 20", avatar: "🌍", color: "#26de81", message: "Ngày Quốc Tế Phụ Nữ: chúc các bạn nữ luôn là phiên bản tốt nhất của chính mình! 🌍💪", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 21", avatar: "💎", color: "#45aaf2", message: "Các bạn nữ quý như kim cương vậy đó! Chúc 8/3 thật đặc biệt và đáng nhớ nhé 💎✨", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 22", avatar: "🎲", color: "#a55eea", message: "Dù cuộc sống có random thế nào thì các bạn nữ vẫn luôn tuyệt vời! Chúc mừng 8/3 🎲🌸", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 23", avatar: "🧊", color: "#78e1e6", message: "Cool ngầu nhưng vẫn chúc 8/3 cực nhiệt! Các bạn nữ là phần không thể thiếu của lớp 🧊💕", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 24", avatar: "🎁", color: "#f368e0", message: "Món quà 8/3 là lời chúc chân thành: hãy luôn hạnh phúc, xinh đẹp và thành công nhé! 🎁🌷", to: "Tất cả các bạn nữ" },
-      { from: "Bạn Nam 25", avatar: "👑", color: "#ffd700", message: "Hôm nay các bạn nữ là nữ hoàng! Chúc một ngày 8/3 hoàng gia, lộng lẫy và tràn ngập yêu thương 👑🌹", to: "Tất cả các bạn nữ" }
-      // ← Thêm bạn nam mới ở đây, giữ nguyên cấu trúc
+    const fallbackWishes = [
+      {
+        from: "Ban tổ chức",
+        avatar: "🌸",
+        color: "#ff6b9d",
+        message: "Chào mừng ngày 8/3. Hãy dán CSV URL để web tự động lấy lời chúc từ Google Sheets.",
+        to: "Tất cả các bạn nữ"
+      },
+      {
+        from: "WebQR",
+        avatar: "✨",
+        color: "#c56cf0",
+        message: "Sau khi dán CSV URL, nhấn 'Tải lại lời chúc' để đồng bộ dữ liệu mới nhất.",
+        to: "Tất cả các bạn nữ"
+      }
     ];
+    const wishes = [...fallbackWishes];
+
+    // ============================================
+    // GOOGLE FORM / SHEET SYNC
+    //
+    // Cách dùng:
+    // 1) Google Form -> "Liên kết tới Google Sheets"
+    // 2) Trong Google Sheets, share "Anyone with the link - Viewer"
+    // 3) Lấy link CSV dạng:
+    //    https://docs.google.com/spreadsheets/d/<SHEET_ID>/export?format=csv&gid=<GID>
+    // 4) Dán vào GOOGLE_SYNC.csvUrl bên dưới
+    // ============================================
+    const GOOGLE_SYNC = {
+        enabled: true,
+        csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRTh4saMOkoRXC-f-H5zLdeW46IcXz-3T0c3aR3hZz2AHS9c9CtfFc_9dNa78wyUfKZMZGBy5nMN44_/pub?gid=721584308&single=true&output=csv', // <-- dán URL CSV Google Sheet vào đây
+        fromHeader: 'Tên người gửi lời chúc',
+        messageHeader: 'Lời chúc dành cho các bạn nữ',
+        timestampHeader: 'Timestamp',
+        to: 'Tất cả các bạn nữ',
+        autoRefreshMs: 45000,
+        timestampDayFirst: true
+    };
+
+    const DYNAMIC_AVATARS = ['🌸', '💖', '✨', '🌷', '🎀', '💐', '🌟'];
+    const DYNAMIC_COLORS = ['#ff6b9d', '#f78fb3', '#c56cf0', '#f8a5c2', '#f3a683', '#cf6a87'];
 
     // ============================================
     // BIẾN TOÀN CỤC
@@ -764,6 +823,8 @@
     let typingAbort = null;
     const fallZone = document.getElementById('fallZone');
     const caughtTray = document.getElementById('caughtTray');
+    const syncStatusEl = document.getElementById('syncStatus');
+    const btnReload = document.getElementById('btnReload');
     const activeEnvelopes = new Set();
     const activeIndices = new Set();
     const delayedSpawns = new Set();
@@ -779,6 +840,9 @@
     let petalsCtrl = null;
     let resizeRaf = 0;
     let lastViewport = { w: innerWidth, h: innerHeight };
+    let syncInProgress = false;
+    let autoRefreshTimer = 0;
+    let lastSyncSignature = '';
 
     const mediaReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const mediaCoarsePointer = window.matchMedia('(pointer: coarse)');
@@ -791,6 +855,289 @@
     };
 
     function random(min, max) { return min + Math.random() * (max - min); }
+
+    function normalizeKey(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim();
+    }
+
+    function normalizeText(value) {
+        return String(value || '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function normalizeMessage(value) {
+        return String(value || '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n')
+            .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+            .join('\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    function parseTimestampMs(value, dayFirst) {
+        const text = normalizeText(value);
+        if (!text) return NaN;
+
+        const m = text.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (m) {
+            const a = Number(m[1]);
+            const b = Number(m[2]);
+            let year = Number(m[3]);
+            if (year < 100) year += 2000;
+
+            let day = dayFirst ? a : b;
+            let month = dayFirst ? b : a;
+            if (a > 12 && b <= 12) { day = a; month = b; }
+            if (b > 12 && a <= 12) { day = b; month = a; }
+
+            const hour = Number(m[4] || 0);
+            const minute = Number(m[5] || 0);
+            const second = Number(m[6] || 0);
+            const d = new Date(year, month - 1, day, hour, minute, second);
+            if (!Number.isNaN(d.getTime()) &&
+                d.getFullYear() === year &&
+                d.getMonth() === month - 1 &&
+                d.getDate() === day) {
+                return d.getTime();
+            }
+        }
+
+        const direct = Date.parse(text);
+        return Number.isFinite(direct) ? direct : NaN;
+    }
+
+    function buildDedupeKey(timestamp, from, message) {
+        return [normalizeKey(timestamp), normalizeKey(from), normalizeKey(message)].join('|');
+    }
+
+    function formatClock(ts) {
+        return new Date(ts || Date.now()).toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function setSyncStatus(text, tone) {
+        if (!syncStatusEl) return;
+        syncStatusEl.textContent = text;
+        syncStatusEl.classList.remove('info', 'ok', 'warn');
+        syncStatusEl.classList.add(tone || 'info');
+    }
+
+    function setReloadButtonBusy(isBusy) {
+        if (!btnReload) return;
+        btnReload.disabled = !!isBusy;
+        btnReload.textContent = isBusy ? 'Đang tải...' : 'Tải lại lời chúc';
+    }
+
+    function clearReadProgress() {
+        readSet.clear();
+        caughtTray.innerHTML = '';
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    }
+
+    function parseCsv(csvText) {
+        const rows = [];
+        const text = String(csvText || '').replace(/^\uFEFF/, '');
+        let row = [];
+        let cell = '';
+        let inQuote = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+
+            if (ch === '"') {
+                if (inQuote && text[i + 1] === '"') {
+                    cell += '"';
+                    i++;
+                } else {
+                    inQuote = !inQuote;
+                }
+                continue;
+            }
+
+            if (ch === ',' && !inQuote) {
+                row.push(cell.trim());
+                cell = '';
+                continue;
+            }
+
+            if ((ch === '\n' || ch === '\r') && !inQuote) {
+                if (ch === '\r' && text[i + 1] === '\n') i++;
+                row.push(cell.trim());
+                if (row.some((v) => v.length > 0)) rows.push(row);
+                row = [];
+                cell = '';
+                continue;
+            }
+
+            cell += ch;
+        }
+
+        row.push(cell.trim());
+        if (row.some((v) => v.length > 0)) rows.push(row);
+        return rows;
+    }
+
+    function findColumnIndex(headers, preferredLabel, fallbackTokens) {
+        const normalizedHeaders = headers.map(normalizeKey);
+        const preferred = normalizeKey(preferredLabel);
+        let idx = normalizedHeaders.findIndex((h) => h === preferred);
+        if (idx >= 0) return idx;
+
+        idx = normalizedHeaders.findIndex((h) => fallbackTokens.every((t) => h.includes(t)));
+        return idx;
+    }
+
+    function buildWish(from, message, idx) {
+        return {
+            from,
+            message,
+            to: GOOGLE_SYNC.to || 'Tất cả các bạn nữ',
+            avatar: DYNAMIC_AVATARS[idx % DYNAMIC_AVATARS.length],
+            color: DYNAMIC_COLORS[idx % DYNAMIC_COLORS.length]
+        };
+    }
+
+    function replaceWishes(nextWishes) {
+        wishes.length = 0;
+        nextWishes.forEach((w) => wishes.push(w));
+    }
+
+    function stopAutoRefresh() {
+        if (!autoRefreshTimer) return;
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = 0;
+    }
+
+    function startAutoRefresh() {
+        stopAutoRefresh();
+        if (!GOOGLE_SYNC.enabled || !GOOGLE_SYNC.csvUrl) return;
+
+        const intervalMs = Math.max(30000, Math.min(60000, Number(GOOGLE_SYNC.autoRefreshMs) || 45000));
+        autoRefreshTimer = setInterval(() => {
+            syncWishes({ showLoading: false, restartFalling: true, silent: true });
+        }, intervalMs);
+    }
+
+    async function loadWishesFromGoogleSheet(options = {}) {
+        const silent = !!options.silent;
+        if (!GOOGLE_SYNC.enabled) {
+            if (!silent) setSyncStatus('Đang tắt đồng bộ Google Sheet. Dùng dữ liệu dự phòng.', 'warn');
+            return { ok: false, changed: false, reason: 'sync-disabled' };
+        }
+        if (!GOOGLE_SYNC.csvUrl) {
+            if (!silent) setSyncStatus('Chưa dán CSV URL. Dùng dữ liệu dự phòng.', 'warn');
+            return { ok: false, changed: false, reason: 'missing-csv-url' };
+        }
+
+        try {
+            const res = await fetch(GOOGLE_SYNC.csvUrl, { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+
+            const csv = await res.text();
+            const rows = parseCsv(csv);
+            if (rows.length < 2) throw new Error('Sheet chưa có dữ liệu');
+
+            const headers = rows[0];
+            const fromIdx = findColumnIndex(headers, GOOGLE_SYNC.fromHeader, ['ten', 'gui', 'chuc']);
+            const msgIdx = findColumnIndex(headers, GOOGLE_SYNC.messageHeader, ['loi', 'chuc']);
+            let tsIdx = findColumnIndex(headers, GOOGLE_SYNC.timestampHeader, ['timestamp']);
+            if (tsIdx < 0) tsIdx = findColumnIndex(headers, 'thoi gian', ['thoi', 'gian']);
+
+            if (fromIdx < 0 || msgIdx < 0) {
+                throw new Error('Không tìm thấy đúng cột tên/lời chúc');
+            }
+
+            const dayFirst = GOOGLE_SYNC.timestampDayFirst !== false;
+            const seen = new Set();
+            const imported = [];
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const timestamp = tsIdx >= 0 ? normalizeText(row[tsIdx]) : '';
+                const from = normalizeText(row[fromIdx]);
+                const message = normalizeMessage(row[msgIdx]);
+                if (!from || !message) continue;
+
+                const dedupeKey = buildDedupeKey(timestamp, from, message);
+                if (seen.has(dedupeKey)) continue;
+                seen.add(dedupeKey);
+
+                imported.push({
+                    from,
+                    message,
+                    rowIndex: i,
+                    timestampMs: parseTimestampMs(timestamp, dayFirst),
+                    dedupeKey
+                });
+            }
+
+            if (!imported.length) throw new Error('Không có dòng hợp lệ');
+
+            imported.sort((a, b) => {
+                const at = Number.isFinite(a.timestampMs) ? a.timestampMs : -Infinity;
+                const bt = Number.isFinite(b.timestampMs) ? b.timestampMs : -Infinity;
+                if (at !== bt) return bt - at;
+                return b.rowIndex - a.rowIndex;
+            });
+
+            const signature = imported.map((item) => item.dedupeKey).join('||');
+            if (signature === lastSyncSignature) {
+                if (!silent) setSyncStatus('Đã đồng bộ ' + imported.length + ' lời chúc lúc ' + formatClock(), 'ok');
+                return { ok: true, changed: false, count: imported.length };
+            }
+
+            const mapped = imported.map((item, idx) => buildWish(item.from, item.message, idx));
+            replaceWishes(mapped);
+            lastSyncSignature = signature;
+            if (!silent) setSyncStatus('Đã tải ' + mapped.length + ' lời chúc lúc ' + formatClock(), 'ok');
+            return { ok: true, changed: true, count: mapped.length };
+        } catch (err) {
+            console.warn('[GOOGLE_SYNC] Không tải được dữ liệu, dùng fallback:', err);
+            if (!silent) setSyncStatus('Link Sheet lỗi hoặc chưa public. Đang dùng dữ liệu dự phòng.', 'warn');
+            return { ok: false, changed: false, error: err };
+        }
+    }
+
+    async function syncWishes(options = {}) {
+        const manual = !!options.manual;
+        const showLoading = options.showLoading !== false;
+        const restartFalling = !!options.restartFalling;
+        const silent = !!options.silent;
+
+        if (syncInProgress) return { ok: false, changed: false, reason: 'sync-busy' };
+        syncInProgress = true;
+        if (manual) setReloadButtonBusy(true);
+        if (showLoading && !silent) setSyncStatus('Đang tải lời chúc...', 'info');
+
+        try {
+            const result = await loadWishesFromGoogleSheet({ silent });
+            if (result.changed) {
+                clearReadProgress();
+                updateBadge();
+                updateHeaderBadge();
+                if (silent) setSyncStatus('Đã cập nhật ' + wishes.length + ' lời chúc lúc ' + formatClock(), 'ok');
+                if (restartFalling) startFalling();
+            } else {
+                updateHeaderBadge();
+                updateBadge();
+            }
+            return result;
+        } finally {
+            if (manual) setReloadButtonBusy(false);
+            syncInProgress = false;
+        }
+    }
 
     function getEnvelopeWidth() {
         return innerWidth < 400 ? 124 : (innerWidth < 600 ? 145 : 160);
@@ -1219,7 +1566,7 @@
         const badge = document.getElementById('headerBadge');
         if (!badge) return;
         const active = activeIndices.size;
-        badge.textContent = active + '/25 lời chúc';
+        badge.textContent = active + '/' + wishes.length + ' lời chúc';
     }
 
     function clearActiveEnvelopes() {
@@ -1387,6 +1734,11 @@
         if (e.target === this) closeLetter();
     });
     document.getElementById('btnFirework').addEventListener('click', bigConfetti);
+    if (btnReload) {
+        btnReload.addEventListener('click', () => {
+            syncWishes({ manual: true, showLoading: true, restartFalling: true });
+        });
+    }
 
     fallZone.addEventListener('click', (e) => {
         const env = e.target.closest('.envelope');
@@ -1546,8 +1898,9 @@
     // ============================================
     // KHỞI CHẠY
     // ============================================
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         refreshPerfFlags();
+        await syncWishes({ showLoading: true, restartFalling: false });
         loadReadState();
         [...readSet].sort((a, b) => a - b).forEach(addCaughtChip);
         updateBadge();
@@ -1555,9 +1908,11 @@
         starsCtrl = initStars();
         petalsCtrl = initPetals();
         startFalling();
+        startAutoRefresh();
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('resize', handleResize, { passive: true });
+        window.addEventListener('beforeunload', stopAutoRefresh);
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', handleResize, { passive: true });
         }
