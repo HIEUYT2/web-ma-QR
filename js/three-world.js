@@ -81,29 +81,44 @@ WD.ThreeWorld = class ThreeWorld {
 
         // Pinch zoom for mobile
         var lastPinchDist = 0;
+        var isPinching = false;
+        var getPinchDist = function (e) {
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
         var onTouchStart = function (e) {
             if (e.touches.length === 2) {
-                var dx = e.touches[0].clientX - e.touches[1].clientX;
-                var dy = e.touches[0].clientY - e.touches[1].clientY;
-                lastPinchDist = Math.sqrt(dx * dx + dy * dy);
+                lastPinchDist = getPinchDist(e);
+                isPinching = true;
             }
         };
         var onTouchMove = function (e) {
             if (self.intro && self.intro.active) return;
             if (e.touches.length === 2) {
-                var dx = e.touches[0].clientX - e.touches[1].clientX;
-                var dy = e.touches[0].clientY - e.touches[1].clientY;
-                var dist = Math.sqrt(dx * dx + dy * dy);
+                if (!isPinching) {
+                    // Started with 1 finger, added 2nd mid-gesture
+                    lastPinchDist = getPinchDist(e);
+                    isPinching = true;
+                    return;
+                }
+                var dist = getPinchDist(e);
                 if (lastPinchDist > 0) {
-                    var diff = (lastPinchDist - dist) * 0.8;
+                    var diff = (lastPinchDist - dist) * 1.5;
                     self.targetZ = WD.Utils.clamp(self.targetZ + diff, 120, 800);
                 }
                 lastPinchDist = dist;
+                e.preventDefault();
             }
         };
-        var onTouchEnd = function () { lastPinchDist = 0; };
+        var onTouchEnd = function (e) {
+            if (e.touches.length < 2) {
+                lastPinchDist = 0;
+                isPinching = false;
+            }
+        };
         canvas.addEventListener("touchstart", onTouchStart, { passive: true });
-        canvas.addEventListener("touchmove", onTouchMove, { passive: true });
+        canvas.addEventListener("touchmove", onTouchMove, { passive: false });
         canvas.addEventListener("touchend", onTouchEnd, { passive: true });
         this.handlers.push(function () {
             canvas.removeEventListener("touchstart", onTouchStart);
