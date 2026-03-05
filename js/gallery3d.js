@@ -34,6 +34,8 @@ WD.Gallery3D = class Gallery3D {
         if (this.animatingCard) return;
         this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        this._lastClickX = e.clientX;
+        this._lastClickY = e.clientY;
         this._cast();
     }
 
@@ -43,6 +45,8 @@ WD.Gallery3D = class Gallery3D {
         var t = e.changedTouches[0];
         this.mouse.x = (t.clientX / window.innerWidth) * 2 - 1;
         this.mouse.y = -(t.clientY / window.innerHeight) * 2 + 1;
+        this._lastClickX = t.clientX;
+        this._lastClickY = t.clientY;
         this._cast();
     }
 
@@ -50,7 +54,42 @@ WD.Gallery3D = class Gallery3D {
         this.raycaster.setFromCamera(this.mouse, this.world.camera);
         var hits = this.raycaster.intersectObjects(this.cardMeshes);
         if (hits.length > 0) {
+            this._spawnBurst(this._lastClickX, this._lastClickY);
             this._zoomToCard(hits[0].object);
+        }
+    }
+
+    _spawnBurst(cx, cy) {
+        var colors = ["#FF6B9D", "#FFB3D1", "#FF3377", "#C084FC", "#FFE066"];
+        for (var i = 0; i < 24; i++) {
+            var dot = document.createElement("div");
+            dot.className = "card-burst-dot";
+            var angle = (i / 24) * Math.PI * 2;
+            var dist = 40 + Math.random() * 60;
+            var tx = Math.cos(angle) * dist;
+            var ty = Math.sin(angle) * dist;
+            dot.style.cssText = [
+                "position:fixed",
+                "left:" + cx + "px",
+                "top:" + cy + "px",
+                "width:" + (4 + Math.random() * 5) + "px",
+                "height:" + (4 + Math.random() * 5) + "px",
+                "border-radius:50%",
+                "background:" + colors[i % colors.length],
+                "pointer-events:none",
+                "z-index:9999",
+                "transform:translate(-50%,-50%)",
+                "transition:transform 0.55s cubic-bezier(.2,.8,.4,1), opacity 0.55s ease",
+                "opacity:1"
+            ].join(";");
+            document.body.appendChild(dot);
+            requestAnimationFrame(function (d, dx, dy) {
+                return function () {
+                    d.style.transform = "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px)) scale(0)";
+                    d.style.opacity = "0";
+                };
+            }(dot, tx, ty));
+            setTimeout(function (d) { if (d.parentNode) d.parentNode.removeChild(d); }, 600, dot);
         }
     }
 

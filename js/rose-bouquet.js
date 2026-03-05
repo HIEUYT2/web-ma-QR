@@ -1,11 +1,14 @@
 window.WD = window.WD || {};
 
 WD.RoseBouquet = {
-    // Generate filled heart points
+    // Generate filled 3D heart points (with Z depth for Y-axis rotation)
     getHeartPoints(count) {
         var points = [];
         var mobile = window.innerWidth < 768;
         var scale = mobile ? 6 : 18;
+        // Max Z depth: center of heart bulges forward, edges taper back
+        var maxDepth = mobile ? 14 : 42;
+
         for (var i = 0; i < count; i++) {
             var t = (i / count) * Math.PI * 2;
             var x = 16 * Math.pow(Math.sin(t), 3);
@@ -13,16 +16,36 @@ WD.RoseBouquet = {
                   - 5 * Math.cos(2 * t)
                   - 2 * Math.cos(3 * t)
                   - Math.cos(4 * t);
-            // Fill inside heart, not just outline
-            var r = Math.pow(Math.random(), 0.5); // sqrt for uniform fill
+            // Fill inside heart uniformly
+            var r = Math.pow(Math.random(), 0.5);
             var a = Math.random() * Math.PI * 2;
             var ix = x * r + Math.cos(a) * 2 * (1 - r);
             var iy = y * r + Math.sin(a) * 2 * (1 - r);
+
+            // Z depth: proportional to how "inside" the point is.
+            // Normalize ix/iy to heart boundary radius (~16 units wide, ~13 tall)
+            var nx = ix / 16;
+            var ny = (iy - 2) / 13; // shift y center slightly
+            // Distance from center (0=center, 1=edge)
+            var edgeDist = Math.min(1, Math.sqrt(nx * nx + ny * ny));
+            // Bell curve: center bulges forward, edges flat
+            var zShape = Math.exp(-edgeDist * edgeDist * 3.5);
+            // Add slight random jitter for organic feel
+            var iz = zShape * maxDepth + (Math.random() - 0.5) * maxDepth * 0.15;
+
             var dist = Math.sqrt(ix * ix + iy * iy);
+            // Shade: center brighter (pink), outer rim darker (deep red), back darker
+            var depthShade = zShape; // 1=front, 0=back
+            var color;
+            if (depthShade > 0.7)      color = "#FF6B9D"; // front center: bright pink
+            else if (depthShade > 0.4) color = "#CC0044"; // mid: deep red
+            else                       color = "#880033"; // back/rim: dark
+
             points.push({
                 x: ix * scale,
                 y: iy * scale,
-                color: dist > 8 ? "#CC0044" : "#FF6B9D"
+                z: iz,
+                color: color
             });
         }
         return points;

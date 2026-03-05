@@ -28,10 +28,17 @@ WD.ThreeBackground = class ThreeBackground {
         var colors = new Float32Array(count * 3);
         var sizes = new Float32Array(count);
         var offsets = new Float32Array(count);
+        var depths = new Float32Array(count); // 0=far/slow, 1=near/fast
         var U = WD.Utils;
 
+        // Store base positions for parallax
+        this.starBasePositions = positions.slice();
+        this.starDepths = depths;
+        this.starCount = count;
+
         for (var i = 0; i < count; i++) {
-            var radius = U.random(800, 1500);
+            var depth = Math.random(); // 0=far, 1=near
+            var radius = U.random(depth < 0.5 ? 1100 : 800, depth < 0.5 ? 1500 : 1000);
             var theta = U.random(0, Math.PI * 2);
             var phi = Math.acos(U.random(-1, 1));
             var base = i * 3;
@@ -42,9 +49,13 @@ WD.ThreeBackground = class ThreeBackground {
             colors[base] = color.r;
             colors[base + 1] = color.g;
             colors[base + 2] = color.b;
-            sizes[i] = U.random(0.5, 2.5);
+            // Near stars brighter and bigger
+            sizes[i] = depth < 0.5 ? U.random(0.5, 1.5) : U.random(1.5, 3.0);
             offsets[i] = U.random(0, Math.PI * 2);
+            depths[i] = depth;
         }
+        // Save base positions after filling
+        this.starBasePositions = new Float32Array(positions);
 
         this.starGeometry = new THREE.BufferGeometry();
         this.starGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -207,6 +218,27 @@ WD.ThreeBackground = class ThreeBackground {
             this.nextMeteorAt = now + this._nextDelay();
         }
         this._updateMeteors(dt);
+        this._updateParallax();
+    }
+
+    _updateParallax() {
+        if (!this.starGeometry || !this.starBasePositions) return;
+        var cam = this.world.camera;
+        var cx = cam.position.x;
+        var cy = cam.position.y;
+        var posArr = this.starGeometry.attributes.position.array;
+        var base = this.starBasePositions;
+        var deps = this.starDepths;
+        for (var i = 0; i < this.starCount; i++) {
+            var d = deps[i];
+            // Near stars (d≈1) shift more; far stars (d≈0) shift less
+            var shift = d * 18;
+            var bi = i * 3;
+            posArr[bi]     = base[bi]     - cx * shift * 0.001;
+            posArr[bi + 1] = base[bi + 1] - cy * shift * 0.001;
+            posArr[bi + 2] = base[bi + 2];
+        }
+        this.starGeometry.attributes.position.needsUpdate = true;
     }
 
     dispose() {

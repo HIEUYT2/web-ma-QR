@@ -39,26 +39,70 @@ WD.ModalController = class ModalController {
     open(item) {
         if (!item) return;
         this.opened = true;
+        // Haptic feedback on mobile
+        if (navigator.vibrate) navigator.vibrate(10);
+
         WD.dom.modalTitle.textContent = "\uD83D\uDC8C Thư gửi " + (item.to || "người phụ nữ tuyệt vời");
         WD.dom.modalSub.textContent = "Từ: " + (item.from || "Ẩn danh") + "  •  8/3/2025";
         WD.dom.modalBody.innerHTML = "";
-        var paragraphs = String(item.message || "").split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
-        (paragraphs.length ? paragraphs : ["..."]).forEach(function (text) {
-            var p = document.createElement("p");
-            p.textContent = text;
-            WD.dom.modalBody.appendChild(p);
-        });
+
         this._spawnPetals();
         WD.dom.modalOverlay.classList.remove("closing");
         WD.dom.modalOverlay.classList.add("show");
         requestAnimationFrame(function () { WD.dom.modalOverlay.classList.add("active"); });
         document.body.classList.add("modal-open");
         if (this.onOpen) this.onOpen();
+
+        // Typewriter effect after modal appears
+        var paragraphs = String(item.message || "").split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
+        if (!paragraphs.length) paragraphs = ["..."];
+        this._typewriterParagraphs(paragraphs);
+    }
+
+    _typewriterParagraphs(paragraphs) {
+        var body = WD.dom.modalBody;
+        body.innerHTML = "";
+        var self = this;
+        var pIndex = 0;
+        var charIndex = 0;
+        var currentP = null;
+        var delay = 28; // ms per character
+        var timer = null;
+
+        // Cancel any existing typewriter
+        if (this._typewriterTimer) clearTimeout(this._typewriterTimer);
+
+        var type = function () {
+            if (!self.opened) return; // modal closed
+            if (pIndex >= paragraphs.length) return;
+
+            if (charIndex === 0) {
+                currentP = document.createElement("p");
+                body.appendChild(currentP);
+            }
+
+            var text = paragraphs[pIndex];
+            currentP.textContent = text.slice(0, charIndex + 1);
+            charIndex++;
+
+            if (charIndex >= text.length) {
+                charIndex = 0;
+                pIndex++;
+                // Pause between paragraphs
+                self._typewriterTimer = setTimeout(type, 180);
+            } else {
+                self._typewriterTimer = setTimeout(type, delay);
+            }
+        };
+
+        // Small initial delay so modal animation starts first
+        this._typewriterTimer = setTimeout(type, 350);
     }
 
     close() {
         if (!this.opened) return;
         this.opened = false;
+        if (this._typewriterTimer) { clearTimeout(this._typewriterTimer); this._typewriterTimer = null; }
         WD.dom.modalOverlay.classList.add("closing");
         WD.dom.modalOverlay.classList.remove("active");
         setTimeout(function () {

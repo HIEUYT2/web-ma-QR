@@ -45,6 +45,6 @@ WD.Config = {
     PHASE_DURATION: {
         GATHER: 800,
         HOLD: 1400,
-        EXPLODE: 400
+        EXPLODE: 600
     }
 };

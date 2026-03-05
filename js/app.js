@@ -100,7 +100,24 @@ WD.App = {
 
         this.background = new WD.ThreeBackground(this.world);
         this.world.setBackground(this.background);
-        this.world.targetZ = this.world.camera.position.z;
+
+        // Zoom camera out so all cards are visible, especially on mobile
+        var wishes = WD.CSVLoader.getWishes();
+        var count = Math.max(1, wishes.length);
+        var cols = Math.max(2, Math.ceil(Math.sqrt(count * 1.3)));
+        var rows = Math.ceil(count / cols);
+        var cardW = WD.runtime.isMobile ? 60 : 80;
+        var cardH = WD.runtime.isMobile ? 78 : 104;
+        var gapX = cardW * 1.4;
+        var gapY = cardH * 1.2;
+        var gridW = cols * gapX;
+        var gridH = rows * gapY;
+        // FOV is 60°, so visible height at distance z ≈ 2 * z * tan(30°) ≈ z * 1.15
+        // Add padding so cards aren't clipped at edges
+        var neededZ = Math.max(gridW / (this.world.camera.aspect * 1.15), gridH / 1.15) + 80;
+        neededZ = Math.max(neededZ, WD.runtime.isMobile ? 500 : 420);
+        neededZ = Math.min(neededZ, 750); // don't go too far
+        this.world.targetZ = neededZ;
 
         var self = this;
         this.gallery = new WD.Gallery3D(this.world, function (item) { self.modal.open(item); });
