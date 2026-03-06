@@ -339,23 +339,27 @@
             margin: 0;
             font-family: "Playfair Display", serif;
             color: var(--white);
-            font-size: 14px;
+            font-size: 12px;
             text-align: center;
             line-height: 1.28;
-            min-height: 36px;
+            min-height: 26px;
             max-width: 100%;
             overflow-wrap: anywhere;
+            opacity: 0.88;
         }
 
         .card-from {
-            margin: 8px 0 0;
-            font-size: 12px;
-            font-style: italic;
+            margin: 10px 0 0;
+            font-family: "Playfair Display", serif;
+            font-size: 17px;
+            font-weight: 700;
+            font-style: normal;
             text-align: center;
-            color: rgba(255, 179, 213, 0.95);
-            min-height: 30px;
+            color: rgba(255, 214, 234, 0.98);
+            min-height: 38px;
             max-width: 100%;
             overflow-wrap: anywhere;
+            text-shadow: 0 0 10px rgba(255, 107, 157, 0.26);
         }
 
         .open-letter {
@@ -366,10 +370,10 @@
             border-radius: 999px;
             padding: 8px 12px;
             font: 500 0.76rem "Lora", serif;
-            opacity: 0;
-            transform: translateY(10px);
+            opacity: 1;
+            transform: translateY(0);
             transition: opacity 0.2s ease, transform 0.2s ease;
-            pointer-events: none;
+            pointer-events: auto;
             cursor: pointer;
         }
 
@@ -649,8 +653,8 @@
                 transform: scale(1.04) translateZ(8px);
             }
             .gallery.mobile-layout .card-icon { font-size: 30px; margin-bottom: 6px; }
-            .gallery.mobile-layout .card-to { font-size: 13px; min-height: 30px; }
-            .gallery.mobile-layout .card-from { font-size: 11px; min-height: 24px; }
+            .gallery.mobile-layout .card-to { font-size: 12px; min-height: 24px; }
+            .gallery.mobile-layout .card-from { font-size: 18px; min-height: 38px; }
             .gallery.mobile-layout .open-letter {
                 font-size: 0.74rem;
                 padding: 8px 12px;
@@ -734,6 +738,10 @@
         .webgl-mode .gallery-container {
             min-height: 80vh;
             pointer-events: none;
+        }
+
+        .webgl-mode #gallery-fallback {
+            display: none !important;
         }
 
         /* Sphere hint overlay */

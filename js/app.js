@@ -29,14 +29,13 @@ WD.App = {
         });
 
         this._bindUI();
+        this._startVisualFlow();
         this._renderGallery();
 
         WD.CSVLoader.syncWishes({ showLoading: true }).then(function () {
             self._renderGallery();
         });
         WD.CSVLoader.startAutoRefresh();
-
-        this._startVisualFlow();
     },
 
     _bindUI: function () {
@@ -120,9 +119,10 @@ WD.App = {
     _renderGallery: function () {
         var data = WD.CSVLoader.getWishes();
 
-        if (this.useWebGL && this.gallery) {
-            this.gallery.render(data);
-        } else if (!this.useWebGL) {
+        if (this.useWebGL) {
+            if (WD.dom.galleryFallback) WD.dom.galleryFallback.hidden = true;
+            if (this.gallery) this.gallery.render(data);
+        } else {
             if (!this.galleryFallback && WD.dom.galleryFallback) {
                 var self = this;
                 WD.dom.galleryFallback.hidden = false;

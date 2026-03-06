@@ -449,14 +449,25 @@ WD.Gallery3D = class Gallery3D {
         ctx.globalAlpha = 1.0;
         ctx.restore();
 
-        // Body
+        // Sender spotlight (no message preview on card face for cleaner look)
         ctx.save();
-        ctx.font = "11.5px 'Segoe UI', Arial, sans-serif";
-        ctx.fillStyle = "#cebde5";
-        ctx.textAlign = "left";
-        var preview = String(wish.message || "").substring(0, 140);
-        if ((wish.message || "").length > 140) preview += "...";
-        this._wrapTextLeft(ctx, preview, 14, 62, W - 28, 16, 8);
+        var fromName = String(wish.from || "An danh").trim();
+        if (!fromName) fromName = "An danh";
+        if (fromName.length > 18) fromName = fromName.substring(0, 18) + "...";
+        ctx.textAlign = "center";
+        ctx.font = "10px 'Segoe UI', sans-serif";
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.7;
+        ctx.fillText("Nguoi gui", W / 2, 88);
+        ctx.font = "bold 19px 'Segoe UI', Arial, sans-serif";
+        ctx.fillStyle = "#ffd9ea";
+        ctx.globalAlpha = 0.96;
+        ctx.fillText(fromName, W / 2, 115);
+        ctx.font = "10px 'Segoe UI', sans-serif";
+        ctx.fillStyle = "#cdb9e8";
+        ctx.globalAlpha = 0.72;
+        ctx.fillText(this.isTouchDevice ? "Cham de doc thu" : "Nhan de doc thu", W / 2, 138);
+        ctx.globalAlpha = 1.0;
         ctx.restore();
 
         // Divider
@@ -470,8 +481,8 @@ WD.Gallery3D = class Gallery3D {
         ctx.strokeStyle = divGrd;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(14, H - 40);
-        ctx.lineTo(W - 14, H - 40);
+        ctx.moveTo(14, H - 46);
+        ctx.lineTo(W - 14, H - 46);
         ctx.stroke();
         ctx.globalAlpha = 1.0;
         ctx.restore();
@@ -482,8 +493,7 @@ WD.Gallery3D = class Gallery3D {
         ctx.fillStyle = "#ffaacc";
         ctx.globalAlpha = 0.65;
         ctx.textAlign = "right";
-        var sig = "-- " + (wish.from || "An danh");
-        if (sig.length > 20) sig = sig.substring(0, 20) + "...";
+        var sig = "Happy 8/3";
         ctx.fillText(sig, W - 14, H - 18);
         ctx.globalAlpha = 1.0;
         ctx.restore();
