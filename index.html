@@ -24,12 +24,6 @@
 
         html, body { margin: 0; min-height: 100%; }
 
-        @keyframes nebula-pulse {
-            0%   { background-position: 0% 50%; }
-            50%  { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
         body {
             font-family: "Lora", serif;
             color: var(--white);
@@ -38,8 +32,6 @@
                 radial-gradient(90% 76% at 88% 0%, rgba(255, 107, 157, 0.2), transparent 58%),
                 radial-gradient(120% 90% at 50% 110%, rgba(255, 210, 122, 0.08), transparent 68%),
                 var(--bg);
-            background-size: 300% 300%;
-            animation: nebula-pulse 8s ease infinite;
             overflow-x: hidden;
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
@@ -256,25 +248,30 @@
             height: 195px;
             transform-style: preserve-3d;
             opacity: 0;
-            animation: cardDrop 0.95s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            animation: cardDrop var(--drop-duration, 1.7s) cubic-bezier(0.22, 1, 0.36, 1) both;
             animation-delay: var(--drop-delay, 0s);
             will-change: transform, opacity;
         }
 
         @keyframes cardDrop {
-            from {
+            0% {
                 opacity: 0;
-                transform: translate3d(var(--x, 0), calc(var(--y, 0px) - 120vh), var(--z, 0)) rotateX(-16deg);
+                transform: translate3d(var(--x, 0), calc(var(--y, 0px) - 120vh), var(--z, 0)) rotateX(-16deg) scale(0.97);
             }
-            to {
+            78% {
+                opacity: 1;
+                transform: translate3d(var(--x, 0), calc(var(--y, 0px) + 8px), var(--z, 0)) rotateX(1.6deg) scale(1);
+            }
+            100% {
                 opacity: 1;
                 transform: translate3d(var(--x, 0), var(--y, 0), var(--z, 0)) rotateX(0deg);
             }
         }
 
         @keyframes mobileCardDrop {
-            from { opacity: 0; transform: translateY(-120vh); }
-            to { opacity: 1; transform: translateY(0); }
+            0% { opacity: 0; transform: translateY(-120vh) scale(0.97); }
+            80% { opacity: 1; transform: translateY(6px) scale(1); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .float-wrap {
@@ -375,6 +372,25 @@
             pointer-events: none;
             cursor: pointer;
         }
+
+        .mobile-load-more {
+            grid-column: 1 / -1;
+            justify-self: center;
+            margin-top: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--white);
+            border-radius: 999px;
+            padding: 10px 16px;
+            font: 500 0.82rem "Lora", serif;
+            letter-spacing: 0.01em;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 8px 24px rgba(180, 77, 255, 0.22);
+            cursor: pointer;
+        }
+
+        .mobile-load-more:active { transform: scale(0.98); }
 
         @media (hover: hover) and (pointer: fine) {
             .letter-card { cursor: pointer; }
@@ -605,6 +621,10 @@
                 font-size: 0.78rem;
                 padding: 8px 11px;
             }
+            .gallery.mobile-layout {
+                gap: 10px;
+                padding: 8px 12px 14px;
+            }
             .gallery.mobile-layout .letter-card {
                 position: relative;
                 left: auto;
@@ -613,25 +633,51 @@
                 height: auto;
                 animation-name: mobileCardDrop;
                 transform: none;
+                touch-action: manipulation;
             }
             .gallery.mobile-layout .float-wrap {
                 display: flex;
                 justify-content: center;
-                animation-name: cardFloatMobile;
+                animation: none;
             }
             .gallery.mobile-layout .letter-card-inner {
-                width: 125px;
-                height: 158px;
+                width: min(100%, 152px);
+                height: 178px;
                 padding: 12px 10px 10px;
+            }
+            .gallery.mobile-layout .letter-card.active .letter-card-inner {
+                transform: scale(1.04) translateZ(8px);
             }
             .gallery.mobile-layout .card-icon { font-size: 30px; margin-bottom: 6px; }
             .gallery.mobile-layout .card-to { font-size: 13px; min-height: 30px; }
             .gallery.mobile-layout .card-from { font-size: 11px; min-height: 24px; }
-            .gallery.mobile-layout .open-letter { font-size: 0.68rem; padding: 6px 10px; }
+            .gallery.mobile-layout .open-letter {
+                font-size: 0.74rem;
+                padding: 8px 12px;
+                opacity: 1;
+                transform: translateY(0);
+                pointer-events: auto;
+                touch-action: manipulation;
+            }
+            .gallery.mobile-layout .mobile-load-more {
+                font-size: 0.78rem;
+                padding: 10px 14px;
+            }
             .modal-box { width: 92vw; max-height: 88vh; }
             .modal-content { padding: 20px 18px 18px; }
             .modal-title { font-size: 20px; padding-right: 46px; }
             .modal-body { font-size: 15px; }
+        }
+
+        @media (max-width: 560px) {
+            .gallery.mobile-layout {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .gallery.mobile-layout .letter-card-inner {
+                width: min(100%, 182px);
+                height: 190px;
+            }
         }
 
         @media (max-width: 430px) {
@@ -680,10 +726,19 @@
                 var(--bg);
         }
 
-        /* WebGL mode: hide gallery container height (3D cards are in canvas) */
+        .no-webgl #main-page.visible .gallery-container {
+            pointer-events: auto;
+        }
+
+        /* WebGL mode: gallery container is invisible, 3D sphere is in canvas */
         .webgl-mode .gallery-container {
             min-height: 80vh;
             pointer-events: none;
+        }
+
+        /* Sphere hint overlay */
+        #sphere-hint {
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
         }
     </style>
 </head>

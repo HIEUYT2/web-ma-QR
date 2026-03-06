@@ -1,53 +1,116 @@
 window.WD = window.WD || {};
 
 WD.RoseBouquet = {
+    // Helper: lerp between two hex colors
+    _lerpHex(hex1, hex2, t) {
+        var r1 = parseInt(hex1.slice(1, 3), 16), g1 = parseInt(hex1.slice(3, 5), 16), b1 = parseInt(hex1.slice(5, 7), 16);
+        var r2 = parseInt(hex2.slice(1, 3), 16), g2 = parseInt(hex2.slice(3, 5), 16), b2 = parseInt(hex2.slice(5, 7), 16);
+        var r = Math.round(r1 + (r2 - r1) * t);
+        var g = Math.round(g1 + (g2 - g1) * t);
+        var b = Math.round(b1 + (b2 - b1) * t);
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    },
+
+    // Test if point (px,py) is inside the heart curve
+    _insideHeart(px, py) {
+        // Normalize to heart parametric space (~-16..16 x, ~-14..17 y)
+        var nx = px / 16;
+        var ny = py / 13;
+        // Implicit heart equation: (x² + y² - 1)³ - x²y³ < 0
+        var x2 = nx * nx, y2 = ny * ny;
+        var v = x2 + y2 - 1;
+        return (v * v * v - x2 * ny * ny * ny) < 0;
+    },
+
     // Generate filled 3D heart points (with Z depth for Y-axis rotation)
     getHeartPoints(count) {
         var points = [];
         var mobile = window.innerWidth < 768;
         var scale = mobile ? 6 : 18;
-        // Max Z depth: center of heart bulges forward, edges taper back
-        var maxDepth = mobile ? 14 : 42;
+        var maxDepth = mobile ? 16 : 48;
 
-        for (var i = 0; i < count; i++) {
-            var t = (i / count) * Math.PI * 2;
-            var x = 16 * Math.pow(Math.sin(t), 3);
-            var y = 13 * Math.cos(t)
-                  - 5 * Math.cos(2 * t)
-                  - 2 * Math.cos(3 * t)
-                  - Math.cos(4 * t);
-            // Fill inside heart uniformly
-            var r = Math.pow(Math.random(), 0.5);
-            var a = Math.random() * Math.PI * 2;
-            var ix = x * r + Math.cos(a) * 2 * (1 - r);
-            var iy = y * r + Math.sin(a) * 2 * (1 - r);
+        // 90% inner fill + 10% glow aura
+        var innerCount = Math.floor(count * 0.9);
+        var auraCount = count - innerCount;
 
-            // Z depth: proportional to how "inside" the point is.
-            // Normalize ix/iy to heart boundary radius (~16 units wide, ~13 tall)
-            var nx = ix / 16;
-            var ny = (iy - 2) / 13; // shift y center slightly
-            // Distance from center (0=center, 1=edge)
-            var edgeDist = Math.min(1, Math.sqrt(nx * nx + ny * ny));
-            // Bell curve: center bulges forward, edges flat
-            var zShape = Math.exp(-edgeDist * edgeDist * 3.5);
-            // Add slight random jitter for organic feel
-            var iz = zShape * maxDepth + (Math.random() - 0.5) * maxDepth * 0.15;
+        // Inner heart fill using rejection sampling for uniform distribution
+        var filled = 0;
+        var maxAttempts = innerCount * 8;
+        var attempts = 0;
+        while (filled < innerCount && attempts < maxAttempts) {
+            attempts++;
+            var rx = (Math.random() - 0.5) * 34; // -17..17
+            var ry = Math.random() * 32 - 15;      // -15..17
+            if (!this._insideHeart(rx, ry)) continue;
 
-            var dist = Math.sqrt(ix * ix + iy * iy);
-            // Shade: center brighter (pink), outer rim darker (deep red), back darker
-            var depthShade = zShape; // 1=front, 0=back
+            // Normalized distance from center for shading
+            var nx = rx / 16;
+            var ny2 = (ry - 2) / 13;
+            var edgeDist = Math.min(1, Math.sqrt(nx * nx + ny2 * ny2));
+
+            // Z depth: smooth bell curve, center bulges forward
+            var zShape = Math.exp(-edgeDist * edgeDist * 2.8);
+            var iz = zShape * maxDepth + (Math.random() - 0.5) * maxDepth * 0.12;
+
+            // Smooth gradient color: hot white center → bright pink → deep rose → dark edge
             var color;
-            if (depthShade > 0.7)      color = "#FF6B9D"; // front center: bright pink
-            else if (depthShade > 0.4) color = "#CC0044"; // mid: deep red
-            else                       color = "#880033"; // back/rim: dark
+            if (edgeDist < 0.25) {
+                color = this._lerpHex("#FFD4E8", "#FF6B9D", edgeDist / 0.25);
+            } else if (edgeDist < 0.55) {
+                color = this._lerpHex("#FF6B9D", "#E8255A", (edgeDist - 0.25) / 0.3);
+            } else if (edgeDist < 0.8) {
+                color = this._lerpHex("#E8255A", "#AA1144", (edgeDist - 0.55) / 0.25);
+            } else {
+                color = this._lerpHex("#AA1144", "#660022", (edgeDist - 0.8) / 0.2);
+            }
 
             points.push({
-                x: ix * scale,
-                y: iy * scale,
+                x: rx * scale,
+                y: ry * scale,
                 z: iz,
                 color: color
             });
+            filled++;
         }
+
+        // Fill remaining if rejection sampling didn't produce enough
+        while (filled < innerCount) {
+            var t = (filled / innerCount) * Math.PI * 2;
+            var bx = 16 * Math.pow(Math.sin(t), 3);
+            var by = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+            var r = Math.pow(Math.random(), 0.5);
+            points.push({
+                x: bx * r * scale,
+                y: by * r * scale,
+                z: Math.random() * maxDepth * 0.5,
+                color: "#CC2255"
+            });
+            filled++;
+        }
+
+        // Aura glow particles: scattered just outside the heart edge
+        for (var i = 0; i < auraCount; i++) {
+            var at = Math.random() * Math.PI * 2;
+            var ax = 16 * Math.pow(Math.sin(at), 3);
+            var ay = 13 * Math.cos(at) - 5 * Math.cos(2 * at) - 2 * Math.cos(3 * at) - Math.cos(4 * at);
+            // Push slightly outside boundary
+            var spread = 1.05 + Math.random() * 0.2;
+            points.push({
+                x: ax * spread * scale,
+                y: ay * spread * scale,
+                z: (Math.random() - 0.5) * maxDepth * 0.3,
+                color: this._lerpHex("#FF99CC", "#FF3377", Math.random())
+            });
+        }
+
+        // Shuffle
+        for (var i = points.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = points[i];
+            points[i] = points[j];
+            points[j] = tmp;
+        }
+
         return points;
     },
 

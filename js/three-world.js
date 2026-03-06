@@ -47,6 +47,7 @@ WD.ThreeWorld = class ThreeWorld {
         var U = WD.Utils;
         var onMove = function (e) {
             if (WD.runtime.isMobile) return;
+            if (self.gallery) return; // gallery handles its own interaction
             var nx = e.clientX / Math.max(1, window.innerWidth) - 0.5;
             var ny = e.clientY / Math.max(1, window.innerHeight) - 0.5;
             self.targetX = U.clamp(nx * 60, -30, 30);
@@ -54,6 +55,7 @@ WD.ThreeWorld = class ThreeWorld {
         };
         var onOrientation = function (e) {
             if (!WD.runtime.isMobile) return;
+            if (self.gallery) return;
             var gamma = U.clamp(e.gamma || 0, -20, 20);
             var beta = U.clamp(e.beta || 0, -20, 20);
             self.targetX = (gamma / 20) * 30;
@@ -71,6 +73,8 @@ WD.ThreeWorld = class ThreeWorld {
         var onWheel = function (e) {
             // Only zoom when intro is done
             if (self.intro && self.intro.active) return;
+            // Gallery handles its own scroll
+            if (self.gallery) return;
             e.preventDefault();
             var delta = e.deltaY > 0 ? 25 : -25;
             self.targetZ = WD.Utils.clamp(self.targetZ + delta, 120, 800);
@@ -79,7 +83,7 @@ WD.ThreeWorld = class ThreeWorld {
         canvas.addEventListener("wheel", onWheel, { passive: false });
         this.handlers.push(function () { canvas.removeEventListener("wheel", onWheel); });
 
-        // Pinch zoom for mobile
+        // Pinch zoom for mobile (only when no gallery)
         var lastPinchDist = 0;
         var isPinching = false;
         var getPinchDist = function (e) {
@@ -88,16 +92,17 @@ WD.ThreeWorld = class ThreeWorld {
             return Math.sqrt(dx * dx + dy * dy);
         };
         var onTouchStart = function (e) {
+            if (self.gallery) return;
             if (e.touches.length === 2) {
                 lastPinchDist = getPinchDist(e);
                 isPinching = true;
             }
         };
         var onTouchMove = function (e) {
+            if (self.gallery) return;
             if (self.intro && self.intro.active) return;
             if (e.touches.length === 2) {
                 if (!isPinching) {
-                    // Started with 1 finger, added 2nd mid-gesture
                     lastPinchDist = getPinchDist(e);
                     isPinching = true;
                     return;
@@ -165,10 +170,13 @@ WD.ThreeWorld = class ThreeWorld {
             if (this.intro && this.intro.active) this.intro.update(dt);
             if (this.background) this.background.update(dt, now);
             if (this.gallery) this.gallery.update(dt, this.elapsed);
-            this.camera.position.x += (this.targetX - this.camera.position.x) * 0.02;
-            this.camera.position.y += (this.targetY - this.camera.position.y) * 0.02;
-            // Smooth zoom
-            if (!this.intro || !this.intro.active) {
+            // When gallery is active, don't override camera with parallax
+            if (!this.gallery) {
+                this.camera.position.x += (this.targetX - this.camera.position.x) * 0.02;
+                this.camera.position.y += (this.targetY - this.camera.position.y) * 0.02;
+            }
+            // Smooth zoom (only when no gallery, which manages its own scroll)
+            if ((!this.intro || !this.intro.active) && !this.gallery) {
                 this.camera.position.z += (this.targetZ - this.camera.position.z) * 0.05;
             }
             this.camera.lookAt(0, 0, 0);
