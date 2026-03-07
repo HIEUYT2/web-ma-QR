@@ -66,7 +66,7 @@ WD.App = {
 
         if (!canUseWebGL) {
             document.documentElement.classList.add("no-webgl");
-            WD.setSyncStatus("Thiết bị không hỗ trợ WebGL, đang dùng hiệu ứng CSS.", "warn");
+            WD.setSyncStatus("Thiết bị không hỗ trợ WebGL, dang dung hieu ung CSS.", "warn");
             this._fallbackIntro();
             return;
         }
@@ -74,10 +74,22 @@ WD.App = {
         this.useWebGL = true;
         document.documentElement.classList.add("webgl-mode");
 
-        document.fonts.ready.then(function () {
-            self.intro = new WD.ThreeIntro(self.world, function () { self._finishIntro(); });
-            self.world.setIntro(self.intro);
+        // Garden SVG animation plays first, then particle intro starts
+        this.garden = new WD.GardenIntro(function () {
+            self.garden = null;
+            document.fonts.ready.then(function () {
+                self.intro = new WD.ThreeIntro(self.world, function () { self._finishIntro(); });
+                self.world.setIntro(self.intro);
+            });
         });
+
+        // Skip-intro button also skips garden
+        var skipHandler = function () {
+            if (self.garden) {
+                self.garden.skip();
+            }
+        };
+        WD.dom.skipIntro.addEventListener("click", skipHandler, { once: true });
     },
 
     _fallbackIntro: function () {
@@ -155,6 +167,7 @@ WD.App = {
 
     _destroy: function () {
         WD.CSVLoader.stopAutoRefresh();
+        if (this.garden) this.garden.dispose();
         if (this.world) this.world.dispose();
     }
 };

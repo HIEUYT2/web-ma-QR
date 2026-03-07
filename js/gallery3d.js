@@ -164,7 +164,6 @@ WD.Gallery3D = class Gallery3D {
         this._maybeOpenAt = function (clientX, clientY) {
             var now = performance.now();
             if (now - self._lastOpenAt < 150) return;
-            console.log("[Gallery3D] tap at", clientX, clientY, "cards:", self.cards.length);
             self._setPointerFromClient(clientX, clientY);
             self._cast(clientX, clientY);
             self._lastOpenAt = now;
@@ -172,7 +171,6 @@ WD.Gallery3D = class Gallery3D {
 
         if (this._usePointerEvents) {
             this._onPointerDown = function (e) {
-                console.log("[Gallery3D] pointerdown", e.pointerType, "target:", e.target.tagName, e.target.className, "ignored:", self._shouldIgnoreTap(e));
                 if (self._shouldIgnoreTap(e)) return;
                 if (e.pointerType === "mouse" && !self.isTouchDevice) {
                     self._setPointerFromClient(e.clientX, e.clientY);
@@ -259,7 +257,6 @@ WD.Gallery3D = class Gallery3D {
         // than raycaster for rotated/moving planes), then fall back to raycaster
         if (this.isTouchDevice && typeof clientX === "number" && typeof clientY === "number") {
             var fallbackCard = this._closestCardToPoint(clientX, clientY);
-            console.log("[Gallery3D] proximity result:", fallbackCard ? "FOUND" : "null");
             if (fallbackCard) { this._openCard(fallbackCard); return; }
         }
 
@@ -267,7 +264,6 @@ WD.Gallery3D = class Gallery3D {
         var meshes = [];
         for (var i = 0; i < this.cards.length; i++) meshes.push(this.cards[i].mesh);
         var hits = this.raycaster.intersectObjects(meshes);
-        console.log("[Gallery3D] raycaster hits:", hits.length);
         if (hits.length > 0) {
             var card = this._cardByMesh(hits[0].object);
             if (card && card.wish) this._openCard(card);
