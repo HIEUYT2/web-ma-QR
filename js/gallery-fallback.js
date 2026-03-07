@@ -87,6 +87,7 @@ WD.GalleryFallback = class GalleryFallback {
                 touchStartAt = performance.now();
             }, { passive: true });
             card.addEventListener("touchend", function (e) {
+                if (e.target && e.target.closest && e.target.closest(".open-letter")) return;
                 var t = e.changedTouches && e.changedTouches[0];
                 if (!t) return;
                 var dx = Math.abs(t.clientX - touchX);
@@ -94,14 +95,12 @@ WD.GalleryFallback = class GalleryFallback {
                 var dt = performance.now() - touchStartAt;
                 if (dx > 12 || dy > 12 || dt > 350) return;
                 lastTouchHandledAt = performance.now();
-                if (self.activeCard === card) self.openHandler(item);
-                else self._setActive(card);
+                self.openHandler(item);
             }, { passive: true });
             card.addEventListener("click", function (e) {
                 if (e.target.closest(".open-letter")) return;
                 if (performance.now() - lastTouchHandledAt < 450) return;
-                if (self.activeCard === card) self.openHandler(item);
-                else self._setActive(card);
+                self.openHandler(item);
             });
         }
         return card;

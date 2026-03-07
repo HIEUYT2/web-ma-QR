@@ -141,12 +141,19 @@ WD.ThreeWorld = class ThreeWorld {
     enableInteraction() {
         if (this.renderer) {
             this.renderer.domElement.style.pointerEvents = "auto";
+            this.renderer.domElement.style.touchAction = "manipulation";
+            if (WD.dom && WD.dom.threeRoot) {
+                WD.dom.threeRoot.style.pointerEvents = "auto";
+                WD.dom.threeRoot.style.touchAction = "manipulation";
+            }
         }
     }
 
     disableInteraction() {
         if (this.renderer) {
             this.renderer.domElement.style.pointerEvents = "none";
+            this.renderer.domElement.style.touchAction = "";
+            if (WD.dom && WD.dom.threeRoot) WD.dom.threeRoot.style.pointerEvents = "none";
         }
     }
 

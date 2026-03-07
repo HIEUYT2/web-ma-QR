@@ -20,6 +20,12 @@ WD.Gallery3D = class Gallery3D {
         this._touchStartX = 0;
         this._touchStartY = 0;
         this._touchStartTime = 0;
+        this._pointerStartX = 0;
+        this._pointerStartY = 0;
+        this._pointerStartTime = 0;
+        this._activePointerId = null;
+        this._lastOpenAt = 0;
+        this._usePointerEvents = !!window.PointerEvent;
 
         var mobile = WD.runtime.isMobile;
         var lowEnd = WD.runtime.isLowEnd;
@@ -61,11 +67,129 @@ WD.Gallery3D = class Gallery3D {
         this._texCache = [];
     }
 
+    _setPointerFromClient(clientX, clientY) {
+        if (!this.world || !this.world.renderer) return;
+        var rect = this.world.renderer.domElement.getBoundingClientRect();
+        var nx = (clientX - rect.left) / Math.max(1, rect.width);
+        var ny = (clientY - rect.top) / Math.max(1, rect.height);
+        this.mouse.x = nx * 2 - 1;
+        this.mouse.y = -(ny * 2) + 1;
+    }
+
+    _openCard(card) {
+        if (!card || !card.wish) return;
+        this._flashCard(card);
+        this.openHandler(card.wish);
+    }
+
+    _closestCardToPoint(clientX, clientY) {
+        if (!this.world || !this.world.renderer || !this.cards.length) return null;
+        var rect = this.world.renderer.domElement.getBoundingClientRect();
+        var best = null;
+        var bestScore = Infinity;
+        for (var i = 0; i < this.cards.length; i++) {
+            var card = this.cards[i];
+            if (!card.mesh || !card.mesh.visible) continue;
+            // Skip cards that haven't faded in yet
+            if (card.age < 0.15) continue;
+
+            var center = card.mesh.position.clone().project(this.world.camera);
+            if (center.z < -1 || center.z > 1) continue;
+
+            var screenX = rect.left + (center.x * 0.5 + 0.5) * rect.width;
+            var screenY = rect.top + (-center.y * 0.5 + 0.5) * rect.height;
+
+            var dx = clientX - screenX;
+            var dy = clientY - screenY;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Use card dimensions in world space, ignore rotation for a generous hit area
+            var scale = card.mesh.scale.x;
+            var halfW = this.CARD_W * scale * 0.5;
+            var halfH = this.CARD_H * scale * 0.5;
+
+            // Project a point offset by halfW/halfH to get screen-space card size
+            var cornerPos = new THREE.Vector3(
+                card.mesh.position.x + halfW,
+                card.mesh.position.y + halfH,
+                card.mesh.position.z
+            ).project(this.world.camera);
+            var projectedW = Math.abs(cornerPos.x - center.x) * rect.width;
+            var projectedH = Math.abs(cornerPos.y - center.y) * rect.height;
+
+            // Use generous multiplier on touch devices for easier tapping on moving cards
+            var base = Math.max(projectedW, projectedH) * (this.isTouchDevice ? 1.5 : 0.75);
+            var minT = this.isTouchDevice ? 70 : 44;
+            var maxT = this.isTouchDevice ? 200 : 110;
+            var threshold = Math.max(minT, Math.min(maxT, base));
+            if (dist > threshold) continue;
+
+            // Prefer front-layer cards (closer to viewer) when distances are similar
+            var layerBonus = card.layer === 2 ? 0.85 : (card.layer === 1 ? 0.95 : 1.0);
+            var score = (dist / Math.max(1, threshold)) * layerBonus;
+            if (score < bestScore) {
+                bestScore = score;
+                best = card;
+            }
+        }
+        return best;
+    }
+
     _bindEvents() {
         if (this._bound) return;
         this._bound = true;
         var self = this;
         var canvas = this.world.renderer.domElement;
+
+        this._maybeOpenAt = function (clientX, clientY) {
+            var now = performance.now();
+            if (now - self._lastOpenAt < 150) return;
+            self._setPointerFromClient(clientX, clientY);
+            self._cast(clientX, clientY);
+            self._lastOpenAt = now;
+        };
+
+        if (this._usePointerEvents) {
+            this._onPointerDown = function (e) {
+                if (e.pointerType === "mouse" && !self.isTouchDevice) {
+                    self._setPointerFromClient(e.clientX, e.clientY);
+                    self._hoverDirty = true;
+                }
+                self._activePointerId = e.pointerId;
+                self._pointerStartX = e.clientX;
+                self._pointerStartY = e.clientY;
+                self._pointerStartTime = performance.now();
+            };
+            this._onPointerUp = function (e) {
+                if (self._activePointerId !== null && e.pointerId !== self._activePointerId) return;
+                var dx = Math.abs(e.clientX - self._pointerStartX);
+                var dy = Math.abs(e.clientY - self._pointerStartY);
+                var dt = performance.now() - self._pointerStartTime;
+                var moveLimit = self.isTouchDevice ? 40 : 6;
+                var timeLimit = self.isTouchDevice ? 800 : 400;
+                if (dx <= moveLimit && dy <= moveLimit && dt <= timeLimit) {
+                    self._maybeOpenAt(e.clientX, e.clientY);
+                }
+                self._activePointerId = null;
+            };
+            this._onPointerCancel = function () {
+                self._activePointerId = null;
+            };
+            this._onPointerMove = function (e) {
+                if (self.isTouchDevice) return;
+                if (e.pointerType !== "mouse") return;
+                self._setPointerFromClient(e.clientX, e.clientY);
+                self._hoverDirty = true;
+            };
+
+            canvas.addEventListener("pointerdown", this._onPointerDown, { passive: true });
+            canvas.addEventListener("pointerup", this._onPointerUp, { passive: true });
+            canvas.addEventListener("pointercancel", this._onPointerCancel, { passive: true });
+            if (!this.isTouchDevice) {
+                canvas.addEventListener("pointermove", this._onPointerMove, { passive: true });
+            }
+            return;
+        }
 
         this._onTouchStart = function (e) {
             if (e.touches.length === 1) {
@@ -80,10 +204,8 @@ WD.Gallery3D = class Gallery3D {
                 var ct = e.changedTouches[0];
                 var dx = Math.abs(ct.clientX - self._touchStartX);
                 var dy = Math.abs(ct.clientY - self._touchStartY);
-                if (dx < 14 && dy < 14 && performance.now() - self._touchStartTime < 300) {
-                    self.mouse.x = (ct.clientX / window.innerWidth) * 2 - 1;
-                    self.mouse.y = -(ct.clientY / window.innerHeight) * 2 + 1;
-                    self._cast();
+                if (dx < 40 && dy < 40 && performance.now() - self._touchStartTime < 800) {
+                    self._maybeOpenAt(ct.clientX, ct.clientY);
                 }
             }
         };
@@ -92,13 +214,10 @@ WD.Gallery3D = class Gallery3D {
 
         if (!this.isTouchDevice) {
             this._onClick = function (e) {
-                self.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                self.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-                self._cast();
+                self._maybeOpenAt(e.clientX, e.clientY);
             };
             this._onMouseMove = function (e) {
-                self.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                self.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                self._setPointerFromClient(e.clientX, e.clientY);
                 self._hoverDirty = true;
             };
             canvas.addEventListener("click", this._onClick);
@@ -106,17 +225,21 @@ WD.Gallery3D = class Gallery3D {
         }
     }
 
-    _cast() {
+    _cast(clientX, clientY) {
+        // On touch devices, always prefer proximity-based detection (more reliable
+        // than raycaster for rotated/moving planes)
+        if (this.isTouchDevice && typeof clientX === "number" && typeof clientY === "number") {
+            var fallbackCard = this._closestCardToPoint(clientX, clientY);
+            if (fallbackCard) { this._openCard(fallbackCard); return; }
+        }
+
         this.raycaster.setFromCamera(this.mouse, this.world.camera);
         var meshes = [];
         for (var i = 0; i < this.cards.length; i++) meshes.push(this.cards[i].mesh);
         var hits = this.raycaster.intersectObjects(meshes);
         if (hits.length > 0) {
             var card = this._cardByMesh(hits[0].object);
-            if (card && card.wish) {
-                this._flashCard(card);
-                this.openHandler(card.wish);
-            }
+            if (card && card.wish) this._openCard(card);
         }
     }
 
@@ -677,6 +800,12 @@ WD.Gallery3D = class Gallery3D {
         }
         if (this.world.renderer) {
             var canvas = this.world.renderer.domElement;
+            if (this._onPointerDown) {
+                canvas.removeEventListener("pointerdown", this._onPointerDown);
+                canvas.removeEventListener("pointerup", this._onPointerUp);
+                canvas.removeEventListener("pointercancel", this._onPointerCancel);
+                if (this._onPointerMove) canvas.removeEventListener("pointermove", this._onPointerMove);
+            }
             if (this._onTouchStart) {
                 canvas.removeEventListener("touchstart", this._onTouchStart);
                 canvas.removeEventListener("touchend", this._onTouchEnd);

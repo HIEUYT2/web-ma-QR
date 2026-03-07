@@ -99,12 +99,10 @@ WD.App = {
 
         this.background = new WD.ThreeBackground(this.world);
         this.world.setBackground(this.background);
-
         var self = this;
         this.gallery = new WD.Gallery3D(this.world, function (item) { self.modal.open(item); });
         this.world.setGallery(this.gallery);
         this.gallery.render(WD.CSVLoader.getWishes());
-
         this.world.enableInteraction();
         this._showMain();
     },
