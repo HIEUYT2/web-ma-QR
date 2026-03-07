@@ -29,15 +29,15 @@ WD.Gallery3D = class Gallery3D {
 
         var mobile = WD.runtime.isMobile;
         var lowEnd = WD.runtime.isLowEnd;
-        this.CARD_W = mobile ? 92 : 100;
-        this.CARD_H = mobile ? 122 : 135;
-        this.MAX_ACTIVE = lowEnd ? (mobile ? 3 : 5) : (mobile ? 4 : 12);
-        this.SPAWN_INTERVAL = lowEnd ? (mobile ? 1.15 : 0.7) : (mobile ? 0.95 : 0.4);
+        this.CARD_W = mobile ? 72 : 100;
+        this.CARD_H = mobile ? 96 : 135;
+        this.MAX_ACTIVE = lowEnd ? (mobile ? 4 : 5) : (mobile ? 6 : 12);
+        this.SPAWN_INTERVAL = lowEnd ? (mobile ? 0.8 : 0.7) : (mobile ? 0.55 : 0.4);
         this._spawnTimer = 0;
 
         // Lane system to prevent overlap
         this._lanes = [];
-        this._laneCount = mobile ? 3 : 6;
+        this._laneCount = mobile ? 4 : 6;
 
         this._viewW = 0;
         this._viewH = 0;
@@ -296,7 +296,7 @@ WD.Gallery3D = class Gallery3D {
         this._bindEvents();
 
         var mobile = WD.runtime.isMobile;
-        var camZ = mobile ? 380 : 420;
+        var camZ = mobile ? 440 : 420;
         this.world.camera.position.set(0, 0, camZ);
         this.world.targetZ = camZ;
 
@@ -328,9 +328,9 @@ WD.Gallery3D = class Gallery3D {
         this._refillQueue();
 
         // Spawn initial batch
-        var initCount = Math.min(this.MAX_ACTIVE, wishes.length, mobile ? 2 : this.MAX_ACTIVE);
+        var initCount = Math.min(this.MAX_ACTIVE, wishes.length, mobile ? 4 : this.MAX_ACTIVE);
         for (var j = 0; j < initCount; j++) {
-            this._spawnCard(j * (mobile ? 0.32 : 0.15));
+            this._spawnCard(j * (mobile ? 0.2 : 0.15));
         }
 
         this._showHint();
@@ -354,9 +354,10 @@ WD.Gallery3D = class Gallery3D {
     }
 
     _pickLane(now) {
-        // Pick the lane that was used least recently, with slight randomness
+        // Pick the lane that was used least recently, with minimum cooldown to prevent vertical stacking
         var best = -1;
         var bestTime = Infinity;
+        var minCooldown = WD.runtime.isMobile ? 1.2 : 0.6;
         // Shuffle candidates to add variety when multiple lanes are equally old
         var order = [];
         for (var i = 0; i < this._laneCount; i++) order.push(i);
@@ -366,9 +367,21 @@ WD.Gallery3D = class Gallery3D {
         }
         for (var m = 0; m < order.length; m++) {
             var li = order[m];
+            // Skip lanes used too recently (prevents vertical overlap)
+            if (now - this._lanes[li].lastSpawnTime < minCooldown) continue;
             if (this._lanes[li].lastSpawnTime < bestTime) {
                 bestTime = this._lanes[li].lastSpawnTime;
                 best = li;
+            }
+        }
+        // If all lanes are on cooldown, pick the oldest one anyway
+        if (best === -1) {
+            for (var n = 0; n < order.length; n++) {
+                var idx = order[n];
+                if (this._lanes[idx].lastSpawnTime < bestTime) {
+                    bestTime = this._lanes[idx].lastSpawnTime;
+                    best = idx;
+                }
             }
         }
         return best;
@@ -386,8 +399,8 @@ WD.Gallery3D = class Gallery3D {
         var lane = this._lanes[laneIdx];
         lane.lastSpawnTime = now;
 
-        // X position: lane center + small jitter
-        var jitter = (this._viewW * 0.84 / this._laneCount) * 0.3;
+        // X position: lane center + small jitter (tighter on mobile to avoid overlap)
+        var jitter = (this._viewW * 0.84 / this._laneCount) * (WD.runtime.isMobile ? 0.18 : 0.3);
         var x = lane.centerX + U.random(-jitter, jitter);
         var y = vh / 2 + this.CARD_H + U.random(10, 60);
 
@@ -398,9 +411,12 @@ WD.Gallery3D = class Gallery3D {
         else if (depthRand < 0.65) layer = 1;
         else layer = 2;
 
+        var isMob = WD.runtime.isMobile;
         var zByLayer = [U.random(30, 60), U.random(-10, 10), U.random(-50, -25)];
-        var scaleByLayer = [0.7, 1.0, 1.15];
-        var speedByLayer = [U.random(11, 17), U.random(17, 26), U.random(24, 34)];
+        var scaleByLayer = isMob ? [0.6, 0.8, 0.95] : [0.7, 1.0, 1.15];
+        var speedByLayer = isMob
+            ? [U.random(16, 22), U.random(22, 32), U.random(30, 42)]
+            : [U.random(11, 17), U.random(17, 26), U.random(24, 34)];
         var alphaByLayer = [0.55, 0.85, 1.0];
 
         var z = zByLayer[layer];
@@ -436,8 +452,8 @@ WD.Gallery3D = class Gallery3D {
             fallSpeed: fallSpeed,
             maxAlpha: maxAlpha,
             layer: layer,
-            // Sway
-            swayAmp: U.random(7, 20) * (layer === 0 ? 0.6 : 1),
+            // Sway (smaller on mobile to prevent horizontal overlap)
+            swayAmp: U.random(isMob ? 4 : 7, isMob ? 12 : 20) * (layer === 0 ? 0.6 : 1),
             swayFreq: U.random(0.24, 0.5),
             swayPhase: U.random(0, Math.PI * 2),
             startX: x,
