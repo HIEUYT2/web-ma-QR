@@ -27,10 +27,10 @@ WD.RoseBouquet = {
         var points = [];
         var mobile = window.innerWidth < 768;
         var scale = mobile ? 6 : 18;
-        var maxDepth = mobile ? 16 : 48;
+        var maxDepth = mobile ? 20 : 60;
 
-        // 90% inner fill + 10% glow aura
-        var innerCount = Math.floor(count * 0.9);
+        // Denser heart fill for clearer silhouette + less aura
+        var innerCount = Math.floor(count * 0.93);
         var auraCount = count - innerCount;
 
         // Inner heart fill using rejection sampling for uniform distribution
