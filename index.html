@@ -74,6 +74,29 @@
             pointer-events: none;
         }
 
+        /* ===== Scene Transition ===== */
+        #scene-transition {
+            position: fixed;
+            inset: 0;
+            z-index: 33;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.6);
+            mix-blend-mode: screen;
+            background:
+                radial-gradient(60% 50% at 50% 70%, rgba(255, 107, 157, 0.6), rgba(180, 77, 255, 0.28) 45%, rgba(4, 4, 15, 0) 75%);
+        }
+
+        #scene-transition.active {
+            animation: sceneBloom 1.2s ease-out forwards;
+        }
+
+        @keyframes sceneBloom {
+            0% { opacity: 0; transform: scale(0.6); filter: blur(0px); }
+            45% { opacity: 1; transform: scale(1); filter: blur(0px); }
+            100% { opacity: 0; transform: scale(1.35); filter: blur(8px); }
+        }
+
         #skip-intro {
             position: fixed;
             top: calc(16px + env(safe-area-inset-top));
@@ -105,6 +128,13 @@
         #main-page.visible {
             opacity: 1;
             pointer-events: none;
+            animation: mainReveal 0.9s ease both;
+        }
+
+        @keyframes mainReveal {
+            0% { opacity: 0; transform: translateY(26px) scale(0.98); filter: blur(8px); }
+            60% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         #main-page.visible .site-header,
@@ -706,7 +736,9 @@
             .loading-flower,
             .reload-btn.busy .reload-icon,
             .modal-petal,
-            .confetti-piece {
+            .confetti-piece,
+            #scene-transition,
+            #main-page {
                 animation: none !important;
             }
             .letter-card,
@@ -758,6 +790,7 @@
     <section id="intro-screen">
         <button id="skip-intro" type="button">Bỏ qua →</button>
     </section>
+    <div id="scene-transition" aria-hidden="true"></div>
 
     <div id="main-page">
         <header class="site-header">

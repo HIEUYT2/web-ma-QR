@@ -11,6 +11,7 @@ WD.App = {
     mainShown: false,
     useWebGL: false,
     resizeRaf: 0,
+    transitionTimer: 0,
     titleClicks: 0,
     titleResetTimer: 0,
 
@@ -99,6 +100,7 @@ WD.App = {
             if (self.introDone) return;
             self.introDone = true;
             WD.dom.introScreen.classList.add("is-done");
+            self._runSceneTransition();
             self._showMain();
         };
         WD.dom.skipIntro.addEventListener("click", done, { once: true });
@@ -116,6 +118,8 @@ WD.App = {
         this.world.setGallery(this.gallery);
         this.gallery.render(WD.CSVLoader.getWishes());
         this.world.enableInteraction();
+        if (WD.dom && WD.dom.introScreen) WD.dom.introScreen.classList.add("is-done");
+        this._runSceneTransition();
         this._showMain();
     },
 
@@ -147,6 +151,18 @@ WD.App = {
 
         WD.dom.letterCounter.textContent = "\uD83D\uDC9D Có " + data.length + " lá thư yêu thương đang chờ bạn";
     },
+ 
+    _runSceneTransition: function () {
+        if (!WD.dom || !WD.dom.sceneTransition) return;
+        var el = WD.dom.sceneTransition;
+        el.classList.remove("active");
+        void el.offsetWidth;
+        el.classList.add("active");
+        clearTimeout(this.transitionTimer);
+        this.transitionTimer = setTimeout(function () {
+            el.classList.remove("active");
+        }, 1300);
+    },
 
     _handleVisibility: function () {
         if (!this.world) return;
@@ -169,6 +185,7 @@ WD.App = {
         WD.CSVLoader.stopAutoRefresh();
         if (this.garden) this.garden.dispose();
         if (this.world) this.world.dispose();
+        clearTimeout(this.transitionTimer);
     }
 };
 

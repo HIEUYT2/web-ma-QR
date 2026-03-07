@@ -6,7 +6,9 @@ WD.runtime = {
 };
 
 WD.Config = {
-    PARTICLE_COUNT: WD.runtime.isMobile ? 8000 : 15000,
+    PARTICLE_COUNT: WD.runtime.isLowEnd
+        ? (WD.runtime.isMobile ? 7000 : 12000)
+        : (WD.runtime.isMobile ? 12000 : 22000),
     STAR_COUNT: (WD.runtime.isMobile || WD.runtime.isLowEnd) ? 1000 : 3000,
     COLORS: {
         bg: "#04040f",

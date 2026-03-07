@@ -31,6 +31,7 @@ WD.initDom = function () {
         introScreen: document.getElementById("intro-screen"),
         introTitle: document.getElementById("intro-title"),
         skipIntro: document.getElementById("skip-intro"),
+        sceneTransition: document.getElementById("scene-transition"),
         mainPage: document.getElementById("main-page"),
         galleryFallback: document.getElementById("gallery-fallback"),
         loadingState: document.getElementById("loading-state"),
