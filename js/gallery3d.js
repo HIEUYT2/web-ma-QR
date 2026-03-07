@@ -135,15 +135,36 @@ WD.Gallery3D = class Gallery3D {
         return best;
     }
 
+    _shouldIgnoreTap(e) {
+        // Ignore taps on interactive UI elements (header buttons, footer, modal, reload)
+        var t = e.target;
+        if (!t) return false;
+        if (t.closest && (
+            t.closest(".modal-overlay") ||
+            t.closest(".reload-btn") ||
+            t.closest("#skip-intro")
+        )) return true;
+        // Allow taps on header title (easter egg) but block other header controls
+        if (t.closest && t.closest(".site-header") && !t.closest(".site-title")) return true;
+        return false;
+    }
+
     _bindEvents() {
         if (this._bound) return;
         this._bound = true;
         var self = this;
         var canvas = this.world.renderer.domElement;
 
+        // On touch devices, events are bound on document instead of canvas
+        // because #main-page (z-index:5) sits above canvas (z-index:0) and
+        // blocks touch events from reaching the canvas on mobile browsers,
+        // even with pointer-events:none on the overlapping elements.
+        var touchTarget = this.isTouchDevice ? document : canvas;
+
         this._maybeOpenAt = function (clientX, clientY) {
             var now = performance.now();
             if (now - self._lastOpenAt < 150) return;
+            console.log("[Gallery3D] tap at", clientX, clientY, "cards:", self.cards.length);
             self._setPointerFromClient(clientX, clientY);
             self._cast(clientX, clientY);
             self._lastOpenAt = now;
@@ -151,6 +172,8 @@ WD.Gallery3D = class Gallery3D {
 
         if (this._usePointerEvents) {
             this._onPointerDown = function (e) {
+                console.log("[Gallery3D] pointerdown", e.pointerType, "target:", e.target.tagName, e.target.className, "ignored:", self._shouldIgnoreTap(e));
+                if (self._shouldIgnoreTap(e)) return;
                 if (e.pointerType === "mouse" && !self.isTouchDevice) {
                     self._setPointerFromClient(e.clientX, e.clientY);
                     self._hoverDirty = true;
@@ -161,6 +184,7 @@ WD.Gallery3D = class Gallery3D {
                 self._pointerStartTime = performance.now();
             };
             this._onPointerUp = function (e) {
+                if (self._shouldIgnoreTap(e)) return;
                 if (self._activePointerId !== null && e.pointerId !== self._activePointerId) return;
                 var dx = Math.abs(e.clientX - self._pointerStartX);
                 var dy = Math.abs(e.clientY - self._pointerStartY);
@@ -182,9 +206,9 @@ WD.Gallery3D = class Gallery3D {
                 self._hoverDirty = true;
             };
 
-            canvas.addEventListener("pointerdown", this._onPointerDown, { passive: true });
-            canvas.addEventListener("pointerup", this._onPointerUp, { passive: true });
-            canvas.addEventListener("pointercancel", this._onPointerCancel, { passive: true });
+            touchTarget.addEventListener("pointerdown", this._onPointerDown, { passive: true });
+            touchTarget.addEventListener("pointerup", this._onPointerUp, { passive: true });
+            touchTarget.addEventListener("pointercancel", this._onPointerCancel, { passive: true });
             if (!this.isTouchDevice) {
                 canvas.addEventListener("pointermove", this._onPointerMove, { passive: true });
             }
@@ -192,6 +216,7 @@ WD.Gallery3D = class Gallery3D {
         }
 
         this._onTouchStart = function (e) {
+            if (self._shouldIgnoreTap(e)) return;
             if (e.touches.length === 1) {
                 var t = e.touches[0];
                 self._touchStartX = t.clientX;
@@ -200,6 +225,7 @@ WD.Gallery3D = class Gallery3D {
             }
         };
         this._onTouchEnd = function (e) {
+            if (self._shouldIgnoreTap(e)) return;
             if (e.changedTouches.length > 0) {
                 var ct = e.changedTouches[0];
                 var dx = Math.abs(ct.clientX - self._touchStartX);
@@ -209,8 +235,8 @@ WD.Gallery3D = class Gallery3D {
                 }
             }
         };
-        canvas.addEventListener("touchstart", this._onTouchStart, { passive: true });
-        canvas.addEventListener("touchend", this._onTouchEnd, { passive: true });
+        touchTarget.addEventListener("touchstart", this._onTouchStart, { passive: true });
+        touchTarget.addEventListener("touchend", this._onTouchEnd, { passive: true });
 
         if (!this.isTouchDevice) {
             this._onClick = function (e) {
@@ -226,10 +252,14 @@ WD.Gallery3D = class Gallery3D {
     }
 
     _cast(clientX, clientY) {
-        // On touch devices, always prefer proximity-based detection (more reliable
-        // than raycaster for rotated/moving planes)
+        // Ensure camera matrices are current (may be called outside render loop)
+        this.world.camera.updateMatrixWorld();
+
+        // On touch devices, try proximity-based detection first (more reliable
+        // than raycaster for rotated/moving planes), then fall back to raycaster
         if (this.isTouchDevice && typeof clientX === "number" && typeof clientY === "number") {
             var fallbackCard = this._closestCardToPoint(clientX, clientY);
+            console.log("[Gallery3D] proximity result:", fallbackCard ? "FOUND" : "null");
             if (fallbackCard) { this._openCard(fallbackCard); return; }
         }
 
@@ -237,6 +267,7 @@ WD.Gallery3D = class Gallery3D {
         var meshes = [];
         for (var i = 0; i < this.cards.length; i++) meshes.push(this.cards[i].mesh);
         var hits = this.raycaster.intersectObjects(meshes);
+        console.log("[Gallery3D] raycaster hits:", hits.length);
         if (hits.length > 0) {
             var card = this._cardByMesh(hits[0].object);
             if (card && card.wish) this._openCard(card);
@@ -800,15 +831,17 @@ WD.Gallery3D = class Gallery3D {
         }
         if (this.world.renderer) {
             var canvas = this.world.renderer.domElement;
+            // On touch devices, pointer/touch events were bound on document
+            var touchTarget = this.isTouchDevice ? document : canvas;
             if (this._onPointerDown) {
-                canvas.removeEventListener("pointerdown", this._onPointerDown);
-                canvas.removeEventListener("pointerup", this._onPointerUp);
-                canvas.removeEventListener("pointercancel", this._onPointerCancel);
+                touchTarget.removeEventListener("pointerdown", this._onPointerDown);
+                touchTarget.removeEventListener("pointerup", this._onPointerUp);
+                touchTarget.removeEventListener("pointercancel", this._onPointerCancel);
                 if (this._onPointerMove) canvas.removeEventListener("pointermove", this._onPointerMove);
             }
             if (this._onTouchStart) {
-                canvas.removeEventListener("touchstart", this._onTouchStart);
-                canvas.removeEventListener("touchend", this._onTouchEnd);
+                touchTarget.removeEventListener("touchstart", this._onTouchStart);
+                touchTarget.removeEventListener("touchend", this._onTouchEnd);
             }
             if (this._onClick) canvas.removeEventListener("click", this._onClick);
             if (this._onMouseMove) canvas.removeEventListener("mousemove", this._onMouseMove);
